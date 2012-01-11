@@ -47,7 +47,7 @@ define([], function(){
 				// don't call it again
 				this.onThen = null;
 			}
-			this.listeners || (this.listeners = []).push(listener);
+			(this.listeners || this.listeners = []).push(listener);
 			listener(this.value);
 			return {
 				remove: function(){
