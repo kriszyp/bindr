@@ -35,9 +35,13 @@ define(['./Reactive'], function(Reactive){
 		var parentIterator;
 		var parent = this.parent;
 		var myKey = this.key;
-		var parentBase, inheritedIterator, id = nextId++;
+		var parentBase, inheritedBase, inheritedIterator, id = nextId++;
 		// TODO: move callback arg to baseIterator so we don't need to base it around all the time
 		function nextInherited(callback){
+			if(inheritedBase){
+				callback(inheritedBase);
+				inheritedBase = null;
+			}
 console.log(id, "nextInherited", !!inheritedIterator);
 			inheritedIterator(function(base){
 console.log(id, "inheritedIterator", !!base);
@@ -46,8 +50,10 @@ console.log(id, "inheritedIterator", !!base);
 					if(base.parent == parentBase){
 						// TODO: recurse up parents
 						callback(parent.get(base.key));
+						inheritedBase = base; // queue this up next
+					}else{
+						callback(base);
 					}
-					callback(base);
 				}else{
 					nextParent(callback);
 				}
@@ -60,8 +66,13 @@ console.log(id, "nextParent", !!parentIterator);
 console.log(id, "parentIterator", !!base);
 				parentBase = base;
 				if(base){
-					inheritedIterator = base.get(myKey).baseIterator();
-					nextInherited(callback);
+					var childBase = base.get(myKey);
+					if(childBase.baseIterator){
+						inheritedIterator = childBase.baseIterator();
+						nextInherited(callback);
+					}else{
+						callback();
+					}
 				}else{
 					inheritedIterator = parentIterator; // we are all done, and this is a little trick to make sure that subsequent calls also return undefined
 					callback();
@@ -97,41 +108,49 @@ console.log(id, "parentIterator", !!base);
 		// we send it to our first base (hopefully there isn't more bases)
 		this.bases[0].put(value);
 	};
+	CascadePrototype.set = function(name, value){
+		var reactive = new Reactive;
+		reactive.is(value);
+		this.get(name).put(reactive);
+	}
 	CascadePrototype.create = function(){
 		// creates a new instance of this Reactive
 		var instance = new Reactive(this.ast, parentScope);
 		instance.bases = [this];
 	};
-	CascadePrototype.extend = function(baseName){
+	CascadePrototype.call = function(){
+		// when this is called with consecutive arguments, we apply them to the keys in the order they appear
+		var cascade = new Cascade;
+		cascade.extend(this);
+		var args = arguments, i = 0;
+		this.keys(function(key){
+			cascade.get(key).is(args[i++]);
+			return i >= args.length; // tell it we are done
+		});
+	};
+	CascadePrototype.resolve = function(baseName){
 		var lastParent = this;
-		var base;
-		// do we really need to accept a string or reactive?
-		if(typeof baseName == "string"){
-			while(parent = lastParent.parent){
-				// TODO: Wait for the parent scope to be ready
-				// search through scopes until we find the base's name
-				if(base = parent[baseName + '-']){
-					break;
-				}
-				lastParent = parent;
+		var target;
+		var parent;
+		while(parent = lastParent.parent){
+			// TODO: Wait for the parent scope to be ready
+			// search through scopes until we find the base's name
+			if(target = parent[baseName + '-']){
+				return target;
 			}
-			if(!base){
-				// we couldn't find the base's name, create it at the global level
-				console.log(baseName + " reference not found"); // wait until the global is fully created before giving this error message in case it is declared later
-				base = lastParent.get(baseName);
-			}
-		}else{
-			base = baseName;
+			lastParent = parent;
 		}
-
+		// we couldn't find the base's name, create it at the global level
+		console.log(baseName + " reference not found"); // wait until the global is fully created before giving this error message in case it is declared later
+		return lastParent.get(baseName);
+		
+	};
+	CascadePrototype.extend = function(base){
 		// the derivitive of my base is me 
 		(this.bases || (this.bases = [])).push(base);
 		// for each base, we extend all the children that have been cached
 		var self = this;
-		for(var i in this){
-			// TODO: if it is a child, then extend the child properly
-			
-		}
+		// TODO: fire base listeners
 		
 		// TODO: do the conditional search for the primary value through the bases
 	};
@@ -177,6 +196,9 @@ console.log(id, "parentIterator", !!base);
 									// stop listening to the next bases if we don't need them
 									nextHandle && nextHandle.remove();
 								}
+								if(value && value.create){
+									value.create(self);
+								}
 								// when a new value is provided, we notify all the listeners
 								self.is(value);
 							}
@@ -204,7 +226,7 @@ console.log(id, "parentIterator", !!base);
 		var listeners = (this.keyListeners || (this.keyListeners = []));
 		listeners.push(listener);
 		for(var i in this){
-			if(i.charAt(i.length - 1) = '-'){
+			if(i.charAt(i.length - 1) == '-'){
 				listener(this[i]);
 			}
 		}

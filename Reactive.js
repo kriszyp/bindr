@@ -15,7 +15,7 @@ define([], function(){
 			return this[suffixedKey] = this._createChild(key);
 		},
 		_createChild: function(key){
-			var child = new Reactive(map);
+			var child = new Reactive;
 			child.parent = this;
 			return child;
 		},
@@ -30,11 +30,19 @@ define([], function(){
 				}
 			}
 		},
+		push: function(value){
+			var children = this.children;
+			if(!(children instanceof Array)){
+				this.children = children = [];
+			}
+			// TODO: notify list listeners
+			children.push(value);
+		},
 		then: function(listener){
 			if(this.onThen){
 				var self = this;
 				this.onThen(function(value){
-					provide(self, value);
+					self.is(self, value);
 				});
 				// don't call it again
 				this.onThen = null;
