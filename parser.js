@@ -11,6 +11,7 @@ define(['./Cascade'], function(Cascade){
 					if(context.inArray && operator != ':'){
 						// TODO: use context.object.createChild();
 						target = context.object.get(Math.random());
+						context.object.push(target);
 					}else{
 						if(name == 'from'){
 							target = new Cascade;

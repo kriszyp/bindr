@@ -7,6 +7,7 @@ define(['./Reactive', './Cascade', './parser', 'put-selector/put', 'compose/comp
 		span: 'span',
 		div: 'div'
 	}
+	var strings = ["green", "bold"];
 	var divStyle = put("div").style;
 	var domContext = new Reactive;
 	var DOMElement = Compose(Reactive, {
@@ -20,37 +21,51 @@ define(['./Reactive', './Cascade', './parser', 'put-selector/put', 'compose/comp
 					}
 					
 					var children = cascade.children;
-					for(var i = 0; i < children.length; i++){
-						children[i].then(function(child){
-							element.appendChild(child)
+					if(children){
+						for(var i = 0; i < children.length; i++){
+							children[i].then(function(child){
+								element.appendChild(child)
+							});
+						}
+					}else{
+						cascade.get("content").then(function(value){
+							if(value !== undefined){
+								element.innerHTML = value;
+							}
 						});
 					}
-					cascade.keys(function(key){
-						if(key in divStyle){
+					cascade.keys(function(child){
+						if(child.key in divStyle){
 							// TODO: make stylesheet rules for styles
+							child.then(function(value){
+								element.style[child.key] = value;
+							}); 
 						}else{
 							// TODO: set attributes for non-style keys
-							cascade.get(key).then(function(value){
-								element[key] = value;
+							child.then(function(value){
+								element[child.key] = value;
 							});
 						}
 					});
-						
+					return element;
 				}
 			});
 		}
 	});
-	
+	for(var i = 0; i < strings.length; i++){
+		var string = strings[i];
+		domContext.get(string).is(string);
+	}
 	for(var i in domMap){
 		var element = new DOMElement;
-		element.selector = i;
-		domContext.get(i).is(element);
+		element.selector = domMap[i];
+		domContext[i + '-'] = element;
 	}
 	function dbind(element, data, sheet){
 		var root = new Cascade;
 		var rootElement = new DOMElement;
 		rootElement.element = element;
-		root.extend(domContext);
+		root.parent = domContext;
 		root.extend(rootElement);
 		root.get("source").is(data);
 		parser(sheet, root);

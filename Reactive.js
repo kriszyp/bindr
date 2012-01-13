@@ -47,7 +47,7 @@ define([], function(){
 				// don't call it again
 				this.onThen = null;
 			}
-			(this.listeners || this.listeners = []).push(listener);
+			(this.listeners || (this.listeners = [])).push(listener);
 			listener(this.value);
 			return {
 				remove: function(){
@@ -59,6 +59,15 @@ define([], function(){
 					}
 				}
 			};
+		},
+		keys: function(listener){
+			var listeners = (this.keyListeners || (this.keyListeners = []));
+			listeners.push(listener);
+			for(var i in this){
+				if(i.charAt(i.length - 1) == '-'){
+					listener(this[i]);
+				}
+			}			
 		}
 	};
 	return Reactive; 	

@@ -197,7 +197,7 @@ console.log(id, "parentIterator", !!base);
 									nextHandle && nextHandle.remove();
 								}
 								if(value && value.create){
-									value.create(self);
+									value = value.create(self);
 								}
 								// when a new value is provided, we notify all the listeners
 								self.is(value);
@@ -223,13 +223,7 @@ console.log(id, "parentIterator", !!base);
 		}
 	};
 	CascadePrototype.keys = function(listener){
-		var listeners = (this.keyListeners || (this.keyListeners = []));
-		listeners.push(listener);
-		for(var i in this){
-			if(i.charAt(i.length - 1) == '-'){
-				listener(this[i]);
-			}
-		}
+		Reactive.prototype.keys.call(this, listener);
 		var bases = this.bases;
 		for(var i = 0, l = bases.length; i < l; i++){
 			var base = bases[i];
