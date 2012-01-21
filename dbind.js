@@ -1,4 +1,4 @@
-define(['./Reactive', './Cascade', './parser', 'put-selector/put', 'compose/compose'], function(Reactive, Cascade, parser, put, Compose){
+define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector/put', 'compose/compose'], function(Reactive, Cascade, ReactiveObject, parser, put, Compose){
 	var domMap = {
 		scroll: 'div.bindr-scroll',
 		table: 'table',
@@ -67,7 +67,7 @@ define(['./Reactive', './Cascade', './parser', 'put-selector/put', 'compose/comp
 		rootElement.element = element;
 		root.parent = domContext;
 		root.extend(rootElement);
-		root.get("source").is(data);
+		root.get("source").extend(new ReactiveObject(data));
 		parser(sheet, root);
 		return root;
 	}

@@ -12,12 +12,12 @@ define([], function(){
 			if(suffixedKey in this){
 				return this[suffixedKey];
 			}
-			return this[suffixedKey] = this._createChild(key);
-		},
-		_createChild: function(key){
-			var child = new Reactive;
+			var child = this[suffixedKey] = this._createChild(key);
 			child.parent = this;
 			return child;
+		},
+		_createChild: function(key){
+			return new Reactive;
 		},
 		is: function(value){
 			// sets the main value in this reactive, comes from the source, propagates up

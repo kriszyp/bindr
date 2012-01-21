@@ -7,7 +7,6 @@ define(['./Reactive'], function(Reactive){
 	var CascadePrototype = Cascade.prototype = new Reactive; 
 	CascadePrototype._createChild = function(key){
 		var child = new Cascade();
-		child.parent = this;
 		child.key = key;
 		var listeners = this.keyListeners;
 		if(listeners){
@@ -66,12 +65,13 @@ console.log(id, "nextParent", !!parentIterator);
 console.log(id, "parentIterator", !!base);
 				parentBase = base;
 				if(base){
+					// find the child value provided from this base of our parent 
 					var childBase = base.get(myKey);
 					if(childBase.baseIterator){
 						inheritedIterator = childBase.baseIterator();
 						nextInherited(callback);
 					}else{
-						callback();
+						callback(childBase);
 					}
 				}else{
 					inheritedIterator = parentIterator; // we are all done, and this is a little trick to make sure that subsequent calls also return undefined
