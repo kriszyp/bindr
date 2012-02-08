@@ -174,7 +174,7 @@ define(['./Reactive'], function(Reactive){
 		Reactive.prototype.keys.call(this, listener);
 		this.eachBase(function(base){
 			base.keys && base.keys(listener);
-		});
+		},0,0, true);
 	};
 	return Cascade; 	
 });
