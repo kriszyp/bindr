@@ -25,9 +25,9 @@ define(['../Cascade', '../Reactive'], function(Cascade, Reactive){
 	six.is(6);
 	top.get("base").get("inherited").extend(six);
 	var bound = top.get("base").get("bound");
-	bound.extend(bound.resolve('foo'));
+	bound.extend(bound.resolve('foo'), ['foo']);
 	var instance = top.get("instance");
-	instance.extend(instance.resolve("base"));
+	instance.extend(instance.resolve("base"), ['base']);
 	var four= new Reactive;
 	four.is(4);
 	instance.get("foo").extend(four);

@@ -3,7 +3,7 @@ define(['./Cascade'], function(Cascade){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
 		var setName, namePaths;
 		// parse the bindr sheet
-		sheet.replace(/\s*([^;: }{[]*)([:;} \[\]{])/g, function(t, name, operator){
+		sheet.replace(/\s*([^;: }{[+]*)\s*([:;}+ \[\]{])/g, function(t, name, operator){
 			var inSelector;
 			if(name){
 				var namePaths = name.split('/');
@@ -36,9 +36,9 @@ define(['./Cascade'], function(Cascade){
 						while((dashIndex = namePath.indexOf('-')) > -1){
 							namePath = namePath.substring(0, dashIndex) + namePath.charAt(dashIndex + 1).toUpperCase() + namePath.substring(dashIndex + 2);  
 						}
-						resolution = resolution.get(namePath);
+						namePaths[i] = namePath;
 					}
-					target.extend(resolution);
+					target.extend(resolution, namePaths);
 				}
 			}
 			if(operator != '/'){
@@ -47,7 +47,7 @@ define(['./Cascade'], function(Cascade){
 			switch(operator){
 				case " ": case "/":
 					break;
-				case ":":
+				case ":": case "+":
 					inExtensions = true;
 					break;
 				case "[":

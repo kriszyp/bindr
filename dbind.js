@@ -2,6 +2,7 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 	var domMap = {
 		scroll: 'div.bindr-scroll',
 		table: 'table',
+		label: 'label',
 		text: 'input[type=text]',
 		date: 'input[type=date]',
 		span: 'span',
@@ -19,22 +20,26 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 					if(!element){
 						element = cascade.element || (cascade.element = put(selector));
 					}
-					
-					var children = cascade.children;
+					var parent = cascade.parent;
+					var children = parent.children;
 					if(children){
 						for(var i = 0; i < children.length; i++){
-							children[i].then(function(child){
-								element.appendChild(child)
+							children[i].get("element").then(function(child){
+								if(typeof child == "string"){
+									// eventually do this for any non-element, I think
+									child = document.createTextNode(child);
+								}
+								element.appendChild(child);
 							});
 						}
 					}else{
-						cascade.get("content").then(function(value){
+						parent.then(function(value){
 							if(value !== undefined){
 								element.innerHTML = value;
 							}
 						});
 					}
-					cascade.keys(function(child){
+					parent.keys(function(child){
 						if(child.key in divStyle){
 							// TODO: make stylesheet rules for styles
 							child.then(function(value){
@@ -57,19 +62,20 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 		domContext.get(string).is(string);
 	}
 	for(var i in domMap){
-		var element = new DOMElement;
+		var cascade = new Cascade;
+		var element = cascade['element-'] = new DOMElement; 
 		element.selector = domMap[i];
-		domContext[i + '-'] = element;
+		domContext[i + '-'] = cascade;
 	}
 	function dbind(element, data, sheet){
 		var root = new Cascade;
 		var rootElement = new DOMElement;
 		rootElement.element = element;
+		root.get("element").extend(rootElement);
 		root.parent = domContext;
-		root.extend(rootElement);
 		root.get("source").extend(new ReactiveObject(data));
 		parser(sheet, root);
-		return root;
+		return root.get("element");
 	}
 	return dbind;
 });
