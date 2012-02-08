@@ -35,7 +35,12 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 					}else{
 						parent.then(function(value){
 							if(value !== undefined){
-								element.innerHTML = value;
+								// TODO: use polymorphism here
+								if(element.tagName == "INPUT"){
+									element.value = value;
+								}else{
+									element.innerHTML = value;
+								}
 							}
 						});
 					}
