@@ -4,8 +4,8 @@ define(['../dbind', 'put-selector/put'], function(dbind, put){
 			name: "Mike",
 			age: 33
 		},
-		'[span+source/name { color: green; };' + // span { content: from name} span { source: parent.source.name}
-		'div+source/age { font-weight: bold}]').then(function(target){
+		'[span + source/name { color: green; };' + // span { content: from name} span { source: parent.source.name}
+		'div + source/age { font-weight: bold}]').then(function(target){
 		console.assert(target.firstChild.tagName == 'SPAN');
 		console.assert(target.firstChild.innerHTML == 'Mike');
 		console.assert(getComputedStyle(target.firstChild).color == 'rgb(0, 128, 0)');
@@ -19,10 +19,10 @@ define(['../dbind', 'put-selector/put'], function(dbind, put){
 		},
 		'[div { ' +
 			'person-label: label { color: green};' +
-			'[person-label {content: "Name:"};' +
-			'text { content: source/name};' +
-			'person-label {content: "Repeated Name:"};' +
-			'text { content: source/name; font-weight: bold;};]}]').then(function(target){
-				console.log(target.innerHTML);
+			'[person-label + "Name:",' +
+			'text + source/name,' +
+			'person-label + "Age:",' +
+			'text + source/age {font-weight: bold;}]}]').then(function(target){
+				console.assert(target.innerHTML == '<div><label style="color: green; ">Name:</label><input type="text"><label style="color: green; ">Age:</label><input type="text" style="font-weight: bold; "></div>');
 			});
-});
+});	

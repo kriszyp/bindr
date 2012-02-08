@@ -1,10 +1,21 @@
-define(['./Cascade'], function(Cascade){
+define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 	return function(sheet, target){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
 		var setName, namePaths;
 		// parse the bindr sheet
-		sheet.replace(/\s*([^;: }{[+]*)\s*([:;}+ \[\]{])/g, function(t, name, operator){
+		sheet.replace(/\s*("(?:\\.|[^"])+")|([^;,: }{\][+]*)\s*([:,;}+ \[\]{])/g, function(t, string, name, operator){
+			
 			var inSelector;
+			if(string){
+				// a string is encountered
+				var reactive = new Reactive();
+				reactive.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
+				if(context.inArray && !inExtensions){
+					target = context.object.get(Math.random());
+					context.object.push(target); 
+				}
+				target.extend(reactive);
+			}
 			if(name){
 				var namePaths = name.split('/');
 				if(!inExtensions){
@@ -30,7 +41,7 @@ define(['./Cascade'], function(Cascade){
 				}
 				if(operator != ':'){
 					// name { ...} is sugar for name: name { ...}
- 					var resolution = (inExtensions ? target : target.parent).resolve(namePaths[0]);
+ 					var resolution = (inExtensions || context.inArray ? target : target.parent).resolve(namePaths[0]);
 					for(var i = 1; i < namePaths.length; i++){
 						var dashIndex, namePath = namePaths[i].toLowerCase();
 						while((dashIndex = namePath.indexOf('-')) > -1){
@@ -56,7 +67,7 @@ define(['./Cascade'], function(Cascade){
 					context = {object: target, inArray: operator == '['};
 					stack.push(context);
 					break;
-				case ";":
+				case ";": case ",":
 					target = context.object;
 					inExtensions = false;
 					break;
