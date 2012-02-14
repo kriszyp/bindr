@@ -14,6 +14,7 @@ define([], function(){
 			}
 			var child = this[suffixedKey] = this._createChild(key);
 			child.parent = this;
+			child.key = key;
 			return child;
 		},
 		_createChild: function(key){

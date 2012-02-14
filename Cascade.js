@@ -7,7 +7,6 @@ define(['./Reactive'], function(Reactive){
 	var CascadePrototype = Cascade.prototype = new Reactive; 
 	CascadePrototype._createChild = function(key){
 		var child = new Cascade();
-		child.key = key;
 		var listeners = this.keyListeners;
 		if(listeners){
 			for(var i = 0, l = listeners.length;i < l; i++){
@@ -21,7 +20,12 @@ define(['./Reactive'], function(Reactive){
 		// put the main value in this reactive, comes from the user, 
 		// propagates down (change event propagates back up), by default
 		// we send it to our first base (hopefully there isn't more bases)
-		this.bases[0].put(value);
+		this.eachBase(function(base){
+			if(base.put){
+				base.put(value);
+				return true;
+			}
+		});
 	};
 	CascadePrototype.set = function(name, value){
 		var reactive = new Reactive;
