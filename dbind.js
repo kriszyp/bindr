@@ -38,6 +38,13 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 								// TODO: use polymorphism here
 								if(element.tagName == "INPUT"){
 									element.value = value;
+									element.onchange = function(){
+										var newValue = element.value;
+										if(typeof value == "number" && !isNaN(newValue)){
+											newValue = +newValue;
+										}
+										parent.put(value = newValue);
+									};
 								}else{
 									element.innerHTML = value;
 								}

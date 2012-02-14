@@ -1,9 +1,10 @@
-define(['../dbind', 'put-selector/put'], function(dbind, put){
+define(['../dbind', 'put-selector/put', 'dojo/Stateful'], function(dbind, put, Stateful){
 	var getComputedStyle = window.getComputedStyle;
-	var target = dbind(put(document.body, 'div'), {
+	obj = Stateful({
 			name: "Mike",
 			age: 33
-		},
+		});
+	var target = dbind(put(document.body, 'div'), obj,
 		'[span + source/name { color: green; };' + // span { content: from name} span { source: parent.source.name}
 		'div + source/age { font-weight: bold}]').then(function(target){
 		console.assert(target.firstChild.tagName == 'SPAN');
@@ -13,10 +14,7 @@ define(['../dbind', 'put-selector/put'], function(dbind, put){
 		console.assert(target.firstChild.nextSibling.innerHTML == '33');
 		console.assert(getComputedStyle(target.firstChild.nextSibling).fontWeight == 'bold');
 	});
-	var target = dbind(put(document.body, 'div'), {
-			name: "Mike",
-			age: 33
-		},
+	var target = dbind(put(document.body, 'div'), obj,
 		'[div { ' +
 			'person-label: label { color: green};' +
 			'[person-label + "Name:",' +
