@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	<style>
+		x-dbind {}
+		@import "person-label.css";
+		source: {/*JsonRest('data');*/
+			name: "Bill",
+			age: 33
+		} 
+		[
+			person-label + "Name:",
+			text + or(source/name, "None"),
+			person-label + "Age:",
+			text + source/age {
+				font-weight: bold;
+			}
+		]
+	</style>
+	<script src="../../dojo/dojo.js" data-dojo-config="async: true, deps: ['bindr/scan']"></script>
+	</head>
+	<body>
+		bindr test
+	</body>
+</html>

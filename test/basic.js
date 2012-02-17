@@ -5,7 +5,7 @@ define(['../dbind', 'put-selector/put', 'dojo/Stateful'], function(dbind, put, S
 			age: 33
 		});
 	var target = dbind(put(document.body, 'div'), obj,
-		'[span + source/name { color: green; };' + // span { content: from name} span { source: parent.source.name}
+		'[span + source/name { color: green; };' + 
 		'div + source/age { font-weight: bold}]').then(function(target){
 		console.assert(target.firstChild.tagName == 'SPAN');
 		console.assert(target.firstChild.innerHTML == 'Mike');
