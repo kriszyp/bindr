@@ -108,5 +108,12 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		});
 		return target; 
 	};	
+	directives["extends"] = function(object, sheet){
+		return {
+			extend: function(value){
+				object.extend(value);
+			}
+		};
+	};	
 	return parser;
 });
