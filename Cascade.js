@@ -1,6 +1,49 @@
 define(['./Reactive'], function(Reactive){
 	// Cascading inheritance
 	var nextId = 1;
+
+
+	function then(self, listener){
+		// no listeners, setup the listening mechanism
+		var listeners = self.listeners;
+		self.listeningBase = self.bases ? self.bases.length : 0;
+		var nextHandle, thisListenerBase = self.listeningBase;
+		self.eachBase(function(base){
+			var done;
+	 		base.then(function(value){
+				if(value === undefined){
+					if(thisListenerBase == self.listeningBase){
+						var nextListenerBase = --self.listeningBase;
+						if(nextListenerBase >= 0){
+							nextHandle = nextListen(next);
+						}else{
+							self.listeningBase++; // revert the index change
+							self.is(); // call with undefined as the value
+						}
+					}
+				}else{
+					if(self.listeningBase < thisListenerBase){
+						// stop listening to the next bases if we don't need them
+						nextHandle && nextHandle.remove();
+					}
+					if(value && value.create){
+						value = value.create(self);
+					}
+					// when a new value is provided, we notify all the listeners
+					self.is(value);
+					done = true;
+				}
+		 	});
+		 	return done;
+/*			 	return {
+			 		remove: function(){
+			 			thisHandle.remove();
+			 			nextHandle && nextHandle.remove();
+			 			self.listeningBase++;
+			 		}
+			 	};*/
+		});
+	}
 	
 	function Cascade(){
 	}
@@ -76,66 +119,27 @@ define(['./Reactive'], function(Reactive){
 		
 		// TODO: do the conditional search for the primary value through the bases
 	};
-	CascadePrototype.fulfillScope = function(){
-			this.parent.fulfillScope();
-			var bases = this.bases,
-				scope = this.scope;
-			for(var i = 0, l = bases.length; i < l; i++){
-				var id = scope[bases[i]];
-				this.extend(id);
-			}
-			
-			var properties = this.ast.properties;// iterate through each of these to create our scope
-			for(var i = 0, l = properties.length; i < l; i++){
-				scope[properties[i]] = 3
-			}
-			
-		};
+	
+	CascadePrototype.waitFor = function(promise){
+		(this.waitingOn || (this.waitingOn = [])).push(promise);
+	};
 	CascadePrototype.then = function(listener, errorHandler){
 		var listeners = this.listeners;
 		if(!listeners){
 			var self = this;
-			// no listeners, setup the listening mechanism
 			listeners = this.listeners = [];
-			this.listeningBase = this.bases ? this.bases.length : 0;
-			var nextHandle, thisListenerBase = self.listeningBase;
-			this.eachBase(function(base){
-				var done;
-		 		base.then(function(value){
-					if(value === undefined){
-						if(thisListenerBase == self.listeningBase){
-							var nextListenerBase = --self.listeningBase;
-							if(nextListenerBase >= 0){
-								nextHandle = nextListen(next);
-							}else{
-								self.listeningBase++; // revert the index change
-								self.is(); // call with undefined as the value
-							}
-						}
-					}else{
-						if(self.listeningBase < thisListenerBase){
-							// stop listening to the next bases if we don't need them
-							nextHandle && nextHandle.remove();
-						}
-						if(value && value.create){
-							value = value.create(self);
-						}
-						// when a new value is provided, we notify all the listeners
-						self.is(value);
-						done = true;
-					}
-			 	});
-			 	return done;
-/*			 	return {
-			 		remove: function(){
-			 			thisHandle.remove();
-			 			nextHandle && nextHandle.remove();
-			 			self.listeningBase++;
-			 		}
-			 	};*/
-			});
-			listeners.push(listener);
+			var waitingOn = this.waitingOn || 0;
+			var nextWait = function(){
+				if(waitingOn.length){
+					var next = waitingOn.shift();
+					next(nextWait);
+				}else{
+					then(self, listener);
+				}
+			}
+			nextWait();
 		}
+		listeners.push(listener);
 		if("value" in this){
 			listener(this.value);
 		}
@@ -174,11 +178,12 @@ define(['./Reactive'], function(Reactive){
 			}, parent, parents) : callback(nextBase);
 		},0,0, true);
 	};
+	/* If you need inherited keys, you will need to iterate through the bases
 	CascadePrototype.keys = function(listener){
 		Reactive.prototype.keys.call(this, listener);
 		this.eachBase(function(base){
 			base.keys && base.keys(listener);
 		},0,0, true);
-	};
+	};*/
 	return Cascade; 	
 });
