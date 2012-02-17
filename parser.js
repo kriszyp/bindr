@@ -1,10 +1,17 @@
 define(['./Reactive', './Cascade'], function(Reactive, Cascade){
-	return function(sheet, target){
+	var parser = function(sheet, target){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
-		var setName, namePaths;
+		var setName, namePaths, sheetText = sheet.text;
+		sheetText = sheetText.replace(/\/\*.*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheet.replace(/\s*("(?:\\.|[^"])+")|([^;,: }{\][+]*)\s*([:,;}+ \[\]{])/g, function(t, string, name, operator){
-			
+		sheetText.replace(/\s*@([\w-]+)|("(?:\\.|[^"])+")|([^;,: }{\][+]*)\s*([:,;}+ \[\]{])/g, function(t, directive, string, name, operator){
+			if(directive){
+				var directiveHandler = directives[directive];
+				if(!directiveHandler){
+					throw Error("Directive " + directive + " not supported");
+				}
+				target = directiveHandler(target, sheet);
+			}
 			var inSelector;
 			if(string){
 				// a string is encountered
@@ -84,5 +91,22 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		}
 		return context.object;
 	};
-
+	var directives = parser.directives = {};
+	directives["import"] = function(object, sheet){
+		var target = new Cascade;
+		// tell the object to wait for this import
+		object.waitFor(function(callback){
+			// get the URL from the target
+			target.then(function(value){
+				// request the next sheet
+				sheet.request(value, function(nextSheet){
+					// parse it
+					parser(nextSheet, object);
+					callback();
+				});
+			});
+		});
+		return target; 
+	};	
+	return parser;
 });
