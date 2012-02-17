@@ -8,6 +8,8 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 		span: 'span',
 		div: 'div'
 	}
+	var extraSheet = put(document.getElementsByTagName("head")[0], "style");
+	extraSheet = extraSheet.sheet || extraSheet.styleSheet;
 	var strings = ["green", "bold"];
 	var divStyle = put("div").style;
 	var ua = navigator.userAgent;
@@ -69,13 +71,14 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 						});
 					}
 					function getCSSClass(cascade, callback){
-						cascade.eachBase(function(base){
+						cascade.eachBase && cascade.eachBase(function(base){
 							
 						});
-						var selector = getCSSClass(cascade.parent) + "-" + cascade.key;
+						var selector = (cascade.parent ? getCSSClass(cascade.parent) + "-" : "") + ('' + cascade.key).replace(/\./g, '_');
 						cascade.keys(function(child){
-							var style = (sheet.cssRules || sheet.rules)[sheet.addRule ?
-								sheet.addRule(selector, "") : sheet.insertRule(selector + "{}", this.cssRules.length)].style;
+							var rules = extraSheet.cssRules || extraSheet.rules;
+							var style = rules[extraSheet.addRule ?
+								(extraSheet.addRule(selector, ""), rules.length -1) : extraSheet.insertRule(selector + "{}", this.cssRules.length)].style;
 							var key = child.key;
 							if(key in style || (key = vendorPrefix + key) in style){
 								child.then(function(value){
