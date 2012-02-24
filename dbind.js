@@ -1,16 +1,17 @@
-define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector/put', 'compose/compose'], function(Reactive, Cascade, ReactiveObject, parser, put, Compose){
+define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put-selector/put', 'compose/compose'], function(Reactive, Cascade, ReactiveObject, env, parser, put, Compose){
 	var domMap = {
 		scroll: 'div.bindr-scroll',
+		button: 'button',
 		table: 'table',
 		label: 'label',
-		text: 'input[type=text]',
+		"text-box": 'input[type=text]',
+		"password": 'input[type=password]',
 		date: 'input[type=date]',
 		span: 'span',
 		div: 'div'
 	}
 	var extraSheet = put(document.getElementsByTagName("head")[0], "style");
-	extraSheet = extraSheet.sheet || extraSheet.styleSheet;
-	var strings = ["green", "bold"];
+	es = extraSheet = extraSheet.sheet || extraSheet.styleSheet;
 	var divStyle = put("div").style;
 	var ua = navigator.userAgent;
 	var vendorPrefix = ua.indexOf("WebKit") > -1 ? "-webkit-" :
@@ -18,7 +19,14 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 		ua.indexOf("MSIE") > -1 ? "-ms-" :
 		ua.indexOf("Opera") > -1 ? "-o-" : "";
 
-	var domContext = new Reactive;
+	var domContext = Compose.create(Reactive, {
+		// this makes the top level properties have a default value of their own name
+		_createChild: function(key){
+			var defaultTopLevel = new Reactive;
+			defaultTopLevel.value = key;
+			return defaultTopLevel;
+		}
+	});
 	var DOMElement = Compose(Reactive, {
 		then: function(callback){
 			var selector = this.selector;
@@ -28,24 +36,29 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 					var parent = cascade.parent;
 					if(!element){
 						element = cascade.element || (cascade.element = put(selector));
-						element.className = getCSSClass(parent);
+						element.className = getCSSClass(parent, function(className){
+							element.className += ' ' + className;
+						});
 					}
 					var children = parent.children;
 					if(children){
 						for(var i = 0; i < children.length; i++){
 							(function(child){
-								var lastChildElement;
+								var lastChild;
 								child.get("element").then(function(childElement){
-									if(lastChildElement){
-										element.removeChild(lastChildElement);
-									}
-									lastChildElement = childElement;
 									if(childElement){
-										element.appendChild(childElement);
+										lastChild ? 
+											element.replaceChild(childElement, lastChild) :
+											element.appendChild(childElement);
+										lastChild = childElement;
 									}else{
 										// if there is no element wrapper, we just get the main value and insert it as a plain text node
 										child.then(function(value){
-											element.appendChild(document.createTextNode(value));
+											var newChild = document.createTextNode(value);
+											lastChild ? 
+												element.replaceChild(newChild, lastChild) :
+												element.appendChild(newChild);
+											lastChild = newChild;
 										});
 									}
 								})
@@ -71,14 +84,14 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 						});
 					}
 					function getCSSClass(cascade, callback){
-						cascade.eachBase && cascade.eachBase(function(base){
-							
+						callback && cascade.eachBase && cascade.eachBase(function(base){
+							callback(getCSSClass(base));
 						});
-						var selector = (cascade.parent ? getCSSClass(cascade.parent) + "-" : "") + ('' + cascade.key).replace(/\./g, '_');
+						var selector = (cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_');
 						cascade.keys(function(child){
 							var rules = extraSheet.cssRules || extraSheet.rules;
 							var style = rules[extraSheet.addRule ?
-								(extraSheet.addRule(selector, ""), rules.length -1) : extraSheet.insertRule(selector + "{}", this.cssRules.length)].style;
+								(extraSheet.addRule('.' + selector, ""), rules.length -1) : extraSheet.insertRule('.' + selector + "{}", this.cssRules.length)].style;
 							var key = child.key;
 							if(key in style || (key = vendorPrefix + key) in style){
 								child.then(function(value){
@@ -89,7 +102,7 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 						});
 						return selector;
 					}
-					parent.keys(function(child){
+/*					parent.keys(function(child){
 						if(child.key in divStyle){
 							// TODO: make stylesheet rules for styles
 							child.then(function(value){
@@ -101,22 +114,19 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 								element[child.key] = value;
 							});
 						}
-					});
+					});*/
 					return element;
 				}
 			});
 		}
 	});
-	for(var i = 0; i < strings.length; i++){
-		var string = strings[i];
-		domContext.get(string).is(string);
-	}
 	for(var i in domMap){
 		var cascade = new Cascade;
 		var element = cascade['element-'] = new DOMElement; 
 		element.selector = domMap[i];
 		domContext[i + '-'] = cascade;
 	}
+	env(domContext);
 	function dbind(element, data, sheet){
 		var root = createRoot(element);
 		if(data){
@@ -131,6 +141,7 @@ define(['./Reactive', './Cascade', './ReactiveObject', './parser', 'put-selector
 		rootElement.element = element;
 		root.get("element").extend(rootElement);
 		root.parent = domContext;
+		root.isRoot = true;
 		return root;
 	}
 	dbind.createRoot = createRoot;

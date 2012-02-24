@@ -3,48 +3,6 @@ define(['./Reactive'], function(Reactive){
 	var nextId = 1;
 
 
-	function then(self, listener){
-		// no listeners, setup the listening mechanism
-		var listeners = self.listeners;
-		self.listeningBase = self.bases ? self.bases.length : 0;
-		var nextHandle, thisListenerBase = self.listeningBase;
-		self.eachBase(function(base){
-			var done;
-	 		base.then(function(value){
-				if(value === undefined){
-					if(thisListenerBase == self.listeningBase){
-						var nextListenerBase = --self.listeningBase;
-						if(nextListenerBase >= 0){
-							nextHandle = nextListen(next);
-						}else{
-							self.listeningBase++; // revert the index change
-							self.is(); // call with undefined as the value
-						}
-					}
-				}else{
-					if(self.listeningBase < thisListenerBase){
-						// stop listening to the next bases if we don't need them
-						nextHandle && nextHandle.remove();
-					}
-					if(value && value.create){
-						value = value.create(self);
-					}
-					// when a new value is provided, we notify all the listeners
-					self.is(value);
-					done = true;
-				}
-		 	});
-		 	return done;
-/*			 	return {
-			 		remove: function(){
-			 			thisHandle.remove();
-			 			nextHandle && nextHandle.remove();
-			 			self.listeningBase++;
-			 		}
-			 	};*/
-		});
-	}
-	
 	function Cascade(){
 	}
 	var CascadePrototype = Cascade.prototype = new Reactive; 
@@ -128,55 +86,104 @@ define(['./Reactive'], function(Reactive){
 		if(!listeners){
 			var self = this;
 			listeners = this.listeners = [];
-			var waitingOn = this.waitingOn || 0;
-			var nextWait = function(){
-				if(waitingOn.length){
-					var next = waitingOn.shift();
-					next(nextWait);
-				}else{
-					then(self, listener);
-				}
-			}
-			nextWait();
+			// no listeners, setup the listening mechanism
+			var listeners = this.listeners;
+			this.listeningBase = this.bases ? this.bases.length : 0;
+			var nextHandle, thisListenerBase = this.listeningBase;
+			this.eachBase(function(base){
+				var done;
+		 		base.then(function(value){
+					if(value === undefined){
+						if(thisListenerBase == self.listeningBase){
+							var nextListenerBase = --self.listeningBase;
+							if(nextListenerBase < 0){
+								self.listeningBase++; // revert the index change
+								self.is(); // call with undefined as the value
+							}
+						}
+					}else{
+						if(self.listeningBase < thisListenerBase){
+							// stop listening to the next bases if we don't need them
+							nextHandle && nextHandle.remove();
+						}
+						if(value && value.create){
+							value = value.create(self);
+						}
+						// when a new value is provided, we notify all the listeners
+						self.is(value);
+						done = true;
+					}
+			 	});
+			 	return done;
+	/*			 	return {
+				 		remove: function(){
+				 			thisHandle.remove();
+				 			nextHandle && nextHandle.remove();
+				 			self.listeningBase++;
+				 		}
+				 	};*/
+			});
 		}
 		listeners.push(listener);
 		if("value" in this){
 			listener(this.value);
 		}
 	};
-	CascadePrototype.eachBase = function(callback, forInstance, forBases, includeSelf){
-		var self = this;
-		var bases = this.bases || 0;
-		for(var i = 0; i < bases.length; i++){
-			var base = bases[i];
-			var parent = base.parent;
-			var path = base.path;
-			if(path){
-				if(forInstance && forBases.indexOf(parent) > -1){ // Need to recurse
-					parent = forInstance;
+	CascadePrototype.eachBase = function(callback, forInstance, forBases, includeSelf, waitingOn){
+		if(!waitingOn){
+			waitingOn = this.waitingOn || [];
+			waitingOn.parent = this.parent;
+		}
+		
+		var scope, args = arguments;
+		while(true){
+			if(waitingOn.length){
+				var next = waitingOn.shift();
+				var self = this;
+				return next(function(){
+					args[4] = waitingOn;
+					args.length = 5;
+					args.callee.apply(self, args);
+				});
+			}else if((scope = waitingOn.parent)){
+				waitingOn = scope.waitingOn || [];
+				waitingOn.parent = scope.parent;
+			}else{
+				// done waiting for all the necessary async actions to finish
+				var bases = this.bases || 0;
+				for(var i = bases.length; i > 0;){
+					i--;
+					var base = bases[i];
+					var parent = base.parent;
+					var path = base.path;
+					if(path){
+						if(forInstance && forBases.indexOf(parent) > -1){ // Need to recurse
+							parent = forInstance;
+						}
+						base = parent;
+						for(var j = 0; j < path.length; j++){
+							base = base.get(path[j]);
+						}
+					}
+					if((includeSelf || !base.eachBase) && callback(base)){
+						return true;
+					}
+					if(base.eachBase && base.eachBase(callback, forInstance)){
+						return true;
+					}
 				}
-				base = parent;
-				for(var j = 0; j < path.length; j++){
-					base = base.get(path[j]);
-				}
-			}
-			if((includeSelf || !base.eachBase) && callback(base)){
-				return true;
-			}
-			if(base.eachBase && base.eachBase(callback, forInstance)){
-				return true;
+				var key = this.key;
+				var parent = this.parent;
+				var parents = parent && [];
+				return parent && parent.eachBase &&parent.eachBase(function(parentBase){
+					parents.push(parentBase);
+					var nextBase = parentBase.get(key);
+					return nextBase.eachBase ? nextBase.eachBase(function(base){
+						return callback(base);
+					}, parent, parents) : callback(nextBase);
+				},0,0, true);
 			}
 		}
-		var key = this.key;
-		var parent = this.parent;
-		var parents = parent && [];
-		return parent && parent.eachBase &&parent.eachBase(function(parentBase){
-			parents.push(parentBase);
-			var nextBase = parentBase.get(key);
-			return nextBase.eachBase ? nextBase.eachBase(function(base){
-				return callback(base);
-			}, parent, parents) : callback(nextBase);
-		},0,0, true);
 	};
 	/* If you need inherited keys, you will need to iterate through the bases
 	CascadePrototype.keys = function(listener){

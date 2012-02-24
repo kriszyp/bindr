@@ -30,7 +30,7 @@ define(['./dbind',  './parser', 'dojo/domReady!'], function(dbind, parser){
 	}
 	search("link");
 	search("style");
-	root.then(function(){});// trigger the start
+	root.get("element").then(function(){});// trigger the start
 	function request(baseUrl){
 		return function(url, callback){
 			url = absoluteUrl(baseUrl, url);

@@ -4,13 +4,14 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		var setName, namePaths, sheetText = sheet.text;
 		sheetText = sheetText.replace(/\/\*.*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheetText.replace(/\s*@([\w-]+)|("(?:\\.|[^"])+")|([^;,: }{\][+]*)\s*([:,;}+ \[\]{])/g, function(t, directive, string, name, operator){
+		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([^;,:\s)(}{\][+]*))\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator){
 			if(directive){
 				var directiveHandler = directives[directive];
 				if(!directiveHandler){
 					throw Error("Directive " + directive + " not supported");
 				}
 				target = directiveHandler(target, sheet);
+				inExtensions = true;
 			}
 			var inSelector;
 			if(string){
@@ -18,8 +19,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				var reactive = new Reactive();
 				reactive.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
 				if(context.inArray && !inExtensions){
-					target = context.object.get(Math.random());
-					context.object.push(target); 
+					target = context.object.nextChild();
 				}
 				target.extend(reactive);
 			}
@@ -28,8 +28,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				if(!inExtensions){
 					if(context.inArray && operator != ':'){
 						// TODO: use context.object.createChild();
-						target = context.object.get(Math.random());
-						context.object.push(target);
+						target = context.object.nextChild();
 					}else{
 						if(name == 'from'){
 							target = new Cascade;
@@ -68,17 +67,17 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				case ":": case "+":
 					inExtensions = true;
 					break;
-				case "[":
+				case "[":	case "(":
 				case "{":
 					inExtensions = false;
-					context = {object: target, inArray: operator == '['};
+					context = {object: target, inArray: operator != '{'};
 					stack.push(context);
 					break;
 				case ";": case ",":
 					target = context.object;
 					inExtensions = false;
 					break;
-				case "}": case "]":
+				case "}": case "]": case ")":
 					inExtensions = false;
 					stack.pop();
 					context = stack[stack.length - 1];
@@ -109,11 +108,8 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		return target; 
 	};	
 	directives["extends"] = function(object, sheet){
-		return {
-			extend: function(value){
-				object.extend(value);
-			}
-		};
+		// directly use this object for extensions
+		return object;
 	};	
 	return parser;
 });

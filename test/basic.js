@@ -18,9 +18,9 @@ define(['../dbind', 'put-selector/put', 'dojo/Stateful'], function(dbind, put, S
 		'[div { ' +
 			'person-label: label { color: green};' +
 			'[person-label + "Name:",' +
-			'text + source/name,' +
+			'text-box + source/name,' +
 			'person-label + "Age:",' +
-			'text + source/age {font-weight: bold;}]}]').then(function(target){
+			'text-box + source/age {font-weight: bold;}]}]').then(function(target){
 				console.assert(target.innerHTML == '<div><label style="color: green; ">Name:</label><input type="text"><label style="color: green; ">Age:</label><input type="text" style="font-weight: bold; "></div>');
 			});
 });	

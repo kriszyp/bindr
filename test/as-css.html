@@ -3,19 +3,28 @@
 	<head>
 	<style>
 		x-dbind {}
-		@import "person-label.css";
+		person-label: @import "person-label.css" {}
 		source: {/*JsonRest('data');*/
 			name: "Bill",
-			age: 33
-		} 
+			age: 33,
+			save: save-button/onclick
+		}
+		
+		.rounded {
+			border: 1px solid #333;
+			border-radius: 5px;
+		}
 		[
-			person-label + "Name:",
-			text + or(source/name, "None"),
+			person-label + "Name:" + .rounded,
+			text-box + or(source/name, "None"),
 			person-label + "Age:",
-			text + source/age {
+			text-box + source/age {
 				font-weight: bold;
-			}
+				color: blue;
+			},
+			save-button: button + "Save" 
 		]
+		
 	</style>
 	<script src="../../dojo/dojo.js" data-dojo-config="async: true, deps: ['bindr/scan']"></script>
 	</head>

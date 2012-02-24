@@ -31,6 +31,11 @@ define([], function(){
 				}
 			}
 		},
+		nextChild: function(){
+			var child = this.get((this.children || []).length);
+			this.push(child);
+			return child;
+		},
 		push: function(value){
 			var children = this.children;
 			if(!(children instanceof Array)){
