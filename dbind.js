@@ -19,14 +19,7 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 		ua.indexOf("MSIE") > -1 ? "-ms-" :
 		ua.indexOf("Opera") > -1 ? "-o-" : "";
 
-	var domContext = Compose.create(Reactive, {
-		// this makes the top level properties have a default value of their own name
-		_createChild: function(key){
-			var defaultTopLevel = new Reactive;
-			defaultTopLevel.value = key;
-			return defaultTopLevel;
-		}
-	});
+	var domContext = new Reactive;
 	var DOMElement = Compose(Reactive, {
 		then: function(callback){
 			var selector = this.selector;
@@ -36,9 +29,10 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 					var parent = cascade.parent;
 					if(!element){
 						element = cascade.element || (cascade.element = put(selector));
-						element.className = getCSSClass(parent, function(className){
+						var className = getCSSClass(parent, function(className){
 							element.className += ' ' + className;
 						});
+						element.className += ' ' + className; 
 					}
 					var children = parent.children;
 					if(children){
@@ -87,18 +81,32 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 						callback && cascade.eachBase && cascade.eachBase(function(base){
 							callback(getCSSClass(base));
 						});
-						var selector = (cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_');
+						var selector = (cascade.key && cascade.key.charAt && cascade.key.charAt(0) == '.') ? cascade.key.slice(1) : 
+							((cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_'));
+						var ruleStyle;
 						cascade.keys(function(child){
-							var rules = extraSheet.cssRules || extraSheet.rules;
-							var style = rules[extraSheet.addRule ?
-								(extraSheet.addRule('.' + selector, ""), rules.length -1) : extraSheet.insertRule('.' + selector + "{}", this.cssRules.length)].style;
 							var key = child.key;
-							if(key in style || (key = vendorPrefix + key) in style){
+							if(isNaN(key) && (key in divStyle || (key = vendorPrefix + key) in divStyle)){
+								if(!ruleStyle){
+									var rules = extraSheet.cssRules || extraSheet.rules;
+									ruleStyle = rules[extraSheet.addRule ?
+											(extraSheet.addRule('.' + selector, ""), rules.length -1) : extraSheet.insertRule('.' + selector + "{}", rules.length)].style;
+								}
+								var set;
 								child.then(function(value){
-									style[key] = value;
-								}); 
+									ruleStyle[key] = set = value;
+								});
+								if(!set && child.bases){
+									// we use the path name if no value was provided
+									ruleStyle[key] = child.bases[0].path;
+								}
 							}
-							
+							if(key.slice && key.slice(0,2) == "on"){
+								// event handlers are handled as time varying values with a value that matches the last event
+								dbind.on(element, key.slice(2), function(event){
+									child.is(event);
+								});
+							}
 						});
 						return selector;
 					}
@@ -145,5 +153,8 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 		return root;
 	}
 	dbind.createRoot = createRoot;
+	dbind.on = function(element, type, listener){
+		element.addEventListener(type, listener, false);
+	}
 	return dbind;
 });

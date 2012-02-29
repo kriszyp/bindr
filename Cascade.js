@@ -74,7 +74,10 @@ define(['./Reactive'], function(Reactive){
 		// for each base, we extend all the children that have been cached
 		var self = this;
 		// TODO: fire base listeners
-		
+		var baseListeners = this.baseListeners || 0;
+		for(var i = 0; i < baseListeners.length; i++){
+			baseListeners[i](base);
+		}
 		// TODO: do the conditional search for the primary value through the bases
 	};
 	
@@ -122,19 +125,38 @@ define(['./Reactive'], function(Reactive){
 				 			self.listeningBase++;
 				 		}
 				 	};*/
-			});
+			}, 0, 0, true);
 		}
 		listeners.push(listener);
 		if("value" in this){
 			listener(this.value);
 		}
 	};
-	CascadePrototype.eachBase = function(callback, forInstance, forBases, includeSelf, waitingOn){
+	CascadePrototype.eachBase = function(callback, forInstance, forBases, excludeSelf, waitingOn){
 		if(!waitingOn){
 			waitingOn = this.waitingOn || [];
 			waitingOn.parent = this.parent;
 		}
-		
+		function forBase(base){
+			var parent = base.parent;
+			var path = base.path;
+			if(path){
+				if(forInstance && forBases.indexOf(parent) > -1){ // Need to recurse
+					parent = forInstance;
+				}
+				base = parent;
+				for(var j = 0; j < path.length; j++){
+					base = base.get(path[j]);
+				}
+			}
+			if((!excludeSelf || !base.eachBase) && callback(base)){
+				return true;
+			}
+			if(base.eachBase && base.eachBase(callback, forInstance, null, true)){
+				return true;
+			}			
+		}
+		(this.baseListeners || (this.baseListeners = [])).push(forBase); 
 		var scope, args = arguments;
 		while(true){
 			if(waitingOn.length){
@@ -153,22 +175,7 @@ define(['./Reactive'], function(Reactive){
 				var bases = this.bases || 0;
 				for(var i = bases.length; i > 0;){
 					i--;
-					var base = bases[i];
-					var parent = base.parent;
-					var path = base.path;
-					if(path){
-						if(forInstance && forBases.indexOf(parent) > -1){ // Need to recurse
-							parent = forInstance;
-						}
-						base = parent;
-						for(var j = 0; j < path.length; j++){
-							base = base.get(path[j]);
-						}
-					}
-					if((includeSelf || !base.eachBase) && callback(base)){
-						return true;
-					}
-					if(base.eachBase && base.eachBase(callback, forInstance)){
+					if(forBase(bases[i])){
 						return true;
 					}
 				}
@@ -180,8 +187,8 @@ define(['./Reactive'], function(Reactive){
 					var nextBase = parentBase.get(key);
 					return nextBase.eachBase ? nextBase.eachBase(function(base){
 						return callback(base);
-					}, parent, parents) : callback(nextBase);
-				},0,0, true);
+					}, parent, parents, true) : callback(nextBase);
+				});
 			}
 		}
 	};
