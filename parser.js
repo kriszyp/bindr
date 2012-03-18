@@ -4,7 +4,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		var setName, namePaths, sheetText = sheet.text;
 		sheetText = sheetText.replace(/\/\*.*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([^;,:\s)(}{\][+]*))\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator){
+		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([-\._\w][-_\w]*))\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
 			if(directive){
 				var directiveHandler = directives[directive];
 				if(!directiveHandler){
@@ -16,12 +16,12 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 			var inSelector;
 			if(string){
 				// a string is encountered
-				var reactive = new Reactive();
-				reactive.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
+				//var reactive = new Reactive();
+				//reactive.
 				if(context.inArray && !inExtensions){
 					target = context.object.nextChild();
 				}
-				target.extend(reactive);
+				target.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
 			}
 			if(name){
 				var namePaths = name.split('/');
@@ -30,32 +30,26 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 						// TODO: use context.object.createChild();
 						target = context.object.nextChild();
 					}else{
-						if(name == 'from'){
-							target = new Cascade;
-							target.set('source', symbol = new Symbol(['this', 'source']));
-							symbol.from = true;
-						}else{
-							target = context.object;
-							for(var i = 0; i < namePaths.length; i++){
-								target = target.get(namePaths[i]);
-							}
+						target = context.object;
+						for(var i = 0; i < namePaths.length; i++){
+							target = target.get(namePaths[i]);
 						}
-						if(context.inArray){
+						/*if(context.inArray){
 							context.object.push(target);
-						}
+						}*/
 					}
 				}
 				if(operator != ':'){
 					// name { ...} is sugar for name: name { ...}
- 					var resolution = (inExtensions || context.inArray ? target : target.parent).resolve(namePaths[0]);
+ 					/*var resolution = (inExtensions || context.inArray ? target : target.parent).resolve(namePaths[0]);
 					for(var i = 1; i < namePaths.length; i++){
 						var dashIndex, namePath = namePaths[i].toLowerCase();
 						while((dashIndex = namePath.indexOf('-')) > -1){
 							namePath = namePath.substring(0, dashIndex) + namePath.charAt(dashIndex + 1).toUpperCase() + namePath.substring(dashIndex + 2);  
 						}
 						namePaths[i] = namePath;
-					}
-					target.extend(resolution, namePaths);
+					}*/
+					target.addRef(namePaths);
 				}
 			}
 			if(operator != '/'){
@@ -70,7 +64,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				case "[":	case "(":
 				case "{":
 					inExtensions = false;
-					context = {object: target, inArray: operator != '{'};
+					context = {object: target, inArray: operator != '{', offset: offset + t.length};
 					stack.push(context);
 					break;
 				case ";": case ",":
@@ -79,6 +73,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 					break;
 				case "}": case "]": case ")":
 					inExtensions = false;
+					target.asText = sheetText.substring(context.offset, offset);
 					stack.pop();
 					context = stack[stack.length - 1];
 					target = context.object;

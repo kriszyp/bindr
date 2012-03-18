@@ -1,11 +1,11 @@
-define(['./Reactive'], function(Reactive){
+define(['./Cascade'], function(Cascade){
 	// simple wrapper around JS objects
 	function ReactiveObject(value){
 		this.value = value;
 	}
 	var nativeWatch = {}.watch;
-	var ReactiveObjectPrototype = ReactiveObject.prototype = new Reactive; 
-	ReactiveObjectPrototype._createChild = function(key){
+	var ReactiveObjectPrototype = ReactiveObject.prototype = new Cascade; 
+	ReactiveObjectPrototype.get = function(key){
 		var parentValue= this.value;
 		if(parentValue){
 			// if the object has a (non-native) watch, then we will watch for changes

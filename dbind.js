@@ -1,4 +1,4 @@
-define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put-selector/put', 'compose/compose'], function(Reactive, Cascade, ReactiveObject, env, parser, put, Compose){
+define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put', 'compose/compose'], function(Cascade, ReactiveObject, env, parser, put, Compose){
 	var domMap = {
 		scroll: 'div.bindr-scroll',
 		button: 'button',
@@ -19,64 +19,65 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 		ua.indexOf("MSIE") > -1 ? "-ms-" :
 		ua.indexOf("Opera") > -1 ? "-o-" : "";
 
-	var domContext = new Reactive;
-	var DOMElement = Compose(Reactive, {
-		then: function(callback){
-			var selector = this.selector;
-			var element = this.element;
-			callback({
-				create: function(cascade){
-					var parent = cascade.parent;
+	var domContext = new Cascade;
+	var DOMElement = Compose(Cascade, {
+		mixinto: function(target){
+			Cascade.prototype.mixinto.call(Compose.create(this, {
+				then: function(callback){
+					var selector = this.selector;
+					var element = this.element;
+					var parent = this.parent;
 					if(!element){
-						element = cascade.element || (cascade.element = put(selector));
+						element = this.element = put(selector);
 						var className = getCSSClass(parent, function(className){
 							element.className += ' ' + className;
 						});
 						element.className += ' ' + className; 
 					}
-					var children = parent.children;
-					if(children){
-						for(var i = 0; i < children.length; i++){
-							(function(child){
-								var lastChild;
-								child.get("element").then(function(childElement){
-									if(childElement){
-										lastChild ? 
-											element.replaceChild(childElement, lastChild) :
-											element.appendChild(childElement);
-										lastChild = childElement;
-									}else{
-										// if there is no element wrapper, we just get the main value and insert it as a plain text node
-										child.then(function(value){
-											var newChild = document.createTextNode(value);
+					parent.get("children", function(children){
+						if(children){
+							for(var i = 0; i < children.length; i++){
+								(function(child){
+									var lastChild;
+									child.get("element").then(function(childElement){
+										if(childElement){
 											lastChild ? 
-												element.replaceChild(newChild, lastChild) :
-												element.appendChild(newChild);
-											lastChild = newChild;
-										});
-									}
-								})
-							})(children[i]);
-						}
-					}else{
-						parent.then(function(value){
-							if(value !== undefined){
-								// TODO: use polymorphism here
-								if(element.tagName == "INPUT"){
-									element.value = value;
-									element.onchange = function(){
-										var newValue = element.value;
-										if(typeof value == "number" && !isNaN(newValue)){
-											newValue = +newValue;
+												element.replaceChild(childElement, lastChild) :
+												element.appendChild(childElement);
+											lastChild = childElement;
+										}else{
+											// if there is no element wrapper, we just get the main value and insert it as a plain text node
+											child.then(function(value){
+												var newChild = document.createTextNode(value);
+												lastChild ? 
+													element.replaceChild(newChild, lastChild) :
+													element.appendChild(newChild);
+												lastChild = newChild;
+											});
 										}
-										parent.put(value = newValue);
-									};
-								}else{
-									element.innerHTML = value;
-								}
+									})
+								})(children[i]);
 							}
-						});
-					}
+						}else{
+							parent.then(function(value){
+								if(value !== undefined){
+									// TODO: use polymorphism here
+									if(element.tagName == "INPUT"){
+										element.value = value;
+										element.onchange = function(){
+											var newValue = element.value;
+											if(typeof value == "number" && !isNaN(newValue)){
+												newValue = +newValue;
+											}
+											parent.put(value = newValue);
+										};
+									}else{
+										element.innerHTML = value;
+									}
+								}
+							});
+						}
+					});
 					function getCSSClass(cascade, callback){
 						callback && cascade.eachBase && cascade.eachBase(function(base){
 							callback(getCSSClass(base));
@@ -110,22 +111,22 @@ define(['./Reactive', './Cascade', './ReactiveObject', './env', './parser', 'put
 						});
 						return selector;
 					}
-/*					parent.keys(function(child){
-						if(child.key in divStyle){
-							// TODO: make stylesheet rules for styles
-							child.then(function(value){
-								element.style[child.key] = value;
-							}); 
-						}else{
-							// TODO: set attributes for non-style keys
-							child.then(function(value){
-								element[child.key] = value;
-							});
-						}
-					});*/
+		/*					parent.keys(function(child){
+								if(child.key in divStyle){
+									// TODO: make stylesheet rules for styles
+									child.then(function(value){
+										element.style[child.key] = value;
+									}); 
+								}else{
+									// TODO: set attributes for non-style keys
+									child.then(function(value){
+										element[child.key] = value;
+									});
+								}
+							});*/
 					return element;
 				}
-			});
+			}), target)				
 		}
 	});
 	for(var i in domMap){

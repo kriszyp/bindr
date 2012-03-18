@@ -13,27 +13,26 @@ define(['../Cascade', '../Reactive'], function(Cascade, Reactive){
 		}
 		make something-new: 2;
 	}
-	instance: base {
+	base2: {
+		inherited: 10; 
+	}
+	instance: base, base2 {
 		foo: 4;
 		make something-new: Number, 3;
 	}*/
 	var top = new Cascade;
-	var three = new Reactive;
-	three.is(3);
-	top.get("base").get("foo").extend(three);
-	var six= new Reactive;
-	six.is(6);
-	top.get("base").get("inherited").extend(six);
+	var get = Cascade.get;
+	var addBase = Cascade.addBase;
+	get(get(top, "base"), "foo").is(3);
+	top.get("base").get("inherited").is(6);
 	var bound = top.get("base").get("bound");
-	bound.extend(bound.resolve('foo'), ['foo']);
+	bound.addRef(['foo']);
 	var instance = top.get("instance");
-	instance.extend(instance.resolve("base"), ['base']);
-	var four= new Reactive;
-	four.is(4);
-	instance.get("foo").extend(four);
+	instance.addRef(['base']);
+	addBase(instance,{foo:4});
 	
 	var thens = 0;
-	top.get("base").get("foo").then(function(value){
+	top.get("base").get("foo", function(value){
 		thens++;
 		console.assert(value == 3);
 	});

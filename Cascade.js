@@ -1,4 +1,272 @@
-define(['./Reactive'], function(Reactive){
+define([], function(){
+	function Tmp(){}
+	function delegate(object){
+		Tmp.prototype = object;
+		return new Tmp;
+	}
+	// Cascasde base constructor for objects that can change in real time in response to being fed changes
+	function Cascade(){
+	}
+	Cascade.prototype = {
+		get: function(key, callback){
+			// get the reactive child by the given key
+			if(key in this){
+				var child = this[key];
+			}else{
+				(this.keySet || (this	.keySet = [])).push(key);
+				var child = this[key] = new Cascade;
+				child.parent = this;
+				child.key = key;
+				var bases = this.bases;
+				if(bases){
+					for(var i = 0; i < bases.length; i++){
+						// TODO: can instanceChain be just a number?
+						extend(get(bases[i], key), child, this.instanceChain ? [this] : [this].concat(this.instanceChain));
+					}
+				}
+			}
+			if(callback){
+				child.then ? child.then(callback) : callback(child);
+			}
+			return child;
+		},
+		addRef: function(ref){
+			(this._refs || (this._refs = [])).push(ref);
+		},
+		extend: function(base){
+			// DEPRECATED?
+			// extend this cascade with the given target
+			extend(base, this);
+		},
+		nextChild: function(){
+			var children = get(this, "children");
+			var childrenArray = (children.value || (children.is([])));
+			var newChild;
+			childrenArray.push(newChild = get(children, childrenArray.length));
+			return newChild;
+		},
+		waitFor: function(promise){
+			(this.waitingOn || (this.waitingOn = [])).push(promise);
+		},
+		whenReady: function(callback){
+			var self = this;
+			if(this.parent && this.parent.whenReady){
+				return this.parent.whenReady(proceed);
+			}
+			// check any waiting promises
+			var waitingOn = this.waitingOn;
+			if(waitingOn && waitingOn.length){
+				return waitingOn.shift()(proceed);
+			}
+			var bases = this.bases;
+			if(bases){
+				this.whenReady = null;
+				return callback();
+			}
+			var _refs = this._refs;
+			if(!_refs || !_refs.length){
+				this.whenReady = null;
+				return callback();
+			}
+			bases = this.resolveBases();
+			var waiting = 1;
+			for(var i = 0; i < bases.length; i++){
+				waiting++;
+				var base = bases[i];
+				base.whenReady ?
+					 base.whenReady(done(base)) :
+					 extend(base, this);
+			}
+			this.whenReady = null;
+			done()();
+			function proceed(){
+				self.whenReady(callback);
+			}
+			function done(target){
+				return function(){
+					target && extend(target, self);
+					waiting--;
+					if(!waiting){
+						callback();
+					}					
+				}
+			}
+		},
+		resolveBases: function(){
+			var refs = this._refs;
+			if(refs){
+				var bases = [];
+				var instanceChain = this.instanceChain;
+				for(var i = 0; i < refs.length; i++){
+					var ref = refs[i];
+					if(ref.splice){ // if it is an array
+						// first we need to make sure the depth has been computed
+						var base, depth = ref.depth;
+						if(depth > -1){
+							// second if we are in a different instance chain, we need to go up through the parent chain the proper number of places
+							if(instanceChain && depth < instanceChain.length){
+								base = instanceChain[depth];
+							}else{
+								base = this;
+								for(var i = 0; i <= depth; i++){
+									base = base.parent;
+								}
+							}
+						}else{
+							// need to determine the depth, can get the base in the process
+							var parent = this;
+							var depth = 0;
+							while(parent = parent.parent){
+								base = parent;
+								if(ref[0] in parent){
+									break;
+								}
+								depth++;
+							}
+							ref.depth = depth;
+						}
+						for(var j = 0; j < ref.length; j++){
+							base = get(base, ref[j]);
+						}
+					}else{
+						base = ref;
+					}
+					bases.push(base);
+				}
+				return bases;
+			}
+			return [];
+		},
+		is: function(value){
+			this.getValue = function(callback){
+				callback(value);
+			}
+			return value;
+			// sets the main value in this reactive, comes from the source, propagates up
+			this.value = value;
+			var listeners = this.listeners;
+			if(listeners){
+				for(var i = 0, l = listeners.length;i < l; i++){
+					var listener = listeners[i];
+					listener.call(self, value);
+				}
+			}
+			return value;
+		},
+		//getValue: function(callback){
+			// the intent of this is that it will only be called once
+		//},
+		then: function(callback){
+			if("value" in this){
+				callback(this.value);
+				return true;
+			}
+			if(!this.whenReady){
+				this.getValue ? this.getValue(callback) : callback();
+				return true;
+				var bases = this.bases;
+				if(bases){
+					/*for(var i = bases.length - 1; i >= 0; i--){
+						if(bases[i].then(callback)){
+							return true;
+						}
+					}*/
+				}
+			}else{
+				var self = this;
+				this.whenReady(function(){
+					return self.then(callback);
+				});
+			}
+		},
+		keys: function(listener){
+			var listeners = (this.keyListeners || (this.keyListeners = []));
+			listeners.push(listener);
+			for(var i in this){
+				if(i.charAt(i.length - 1) == '-'){
+					listener(this[i]);
+				}
+			}			
+		}
+	};
+/*
+	this.get("or").getValue = function(callback){
+		this.get('children', function(children){
+			for(var i = 0; i < children.length; i++){
+				var child = children[i];
+				if(child){
+					return callback(child);
+				}
+			}
+		});
+	};
+	var Dijit;
+	this.get("some-dijit").override = function(target){
+		target.clazz = target.clazz ? dojo.declare([Dijit, target.clazz]) : Dijit; 
+		target.getValue = function(callback){
+			return new this.clazz(this);
+		}
+	};
+	*/
+	
+	var get = Cascade.get = function(target, key, callback){
+		// get the reactive child by the given key
+		if(key in target){
+			var child = target[key];
+		}else{
+			(target.keySet || (target	.keySet = [])).push(key);
+			var child = target[key] = new Cascade;
+			child.parent = target;
+			child.key = key;
+			var bases = target.bases;
+			if(bases){
+				for(var i = 0; i < bases.length; i++){
+					// TODO: can instanceChain be just a number?
+					extend(get(bases[i], key), child, target.instanceChain ? [target] : [target].concat(target.instanceChain));
+				}
+			}
+		}
+		if(callback){
+			child.then ? child.then(callback) : callback(child);
+		}
+		return child;
+	};
+	Cascade.addBase = function(base, target){
+		(base._refs || (base._refs = [])).push(target);
+	};
+	var extend = function(base, target, targets){
+		if(typeof base != "object"){
+			return base !== undefined && target.is(base);
+		}
+		if(targets){
+			base = delegate(base);
+		//target.extend(base);
+			base.instanceChain = targets;
+		}
+		//base.resolveBases();
+		(target.bases || (target.bases = [])).push(base);
+		if(base.override){
+			// allow for more sophisticated overrides than simply getValue replacemetns
+			base.override(target);
+		}else if(base.getValue){
+			target.getValue = base.getValue;
+		}
+//			if(target.extend){ // this can be used by type constraints to constrain override values
+//				target.extend(this);
+//		}
+		var keySet = target.keySet;
+		if(keySet){
+			for(var i = 0; i < keySet.length; i++){
+				var key = keySet[i];
+				extend(get(base, key), target[key], targets ? [target].concat(targets) : [target]);
+			}
+		}
+	};
+	return Cascade;
+	 	
+});
+
+/*define(['./Reactive'], function(Reactive){
 	// Cascading inheritance
 	var nextId = 1;
 
@@ -53,7 +321,7 @@ define(['./Reactive'], function(Reactive){
 		var target;
 		var parent;
 		while(parent = lastParent.parent){
-			// TODO: Wait for the parent scope to be ready
+			// TODO: Wait for the parent scope to be whenReady
 			// search through scopes until we find the base's name
 			if(parent[baseName + '-']){
 				return parent;
@@ -118,13 +386,6 @@ define(['./Reactive'], function(Reactive){
 					}
 			 	});
 			 	return done;
-	/*			 	return {
-				 		remove: function(){
-				 			thisHandle.remove();
-				 			nextHandle && nextHandle.remove();
-				 			self.listeningBase++;
-				 		}
-				 	};*/
 			}, 0, 0, true);
 		}
 		listeners.push(listener);
@@ -192,12 +453,6 @@ define(['./Reactive'], function(Reactive){
 			}
 		}
 	};
-	/* If you need inherited keys, you will need to iterate through the bases
-	CascadePrototype.keys = function(listener){
-		Reactive.prototype.keys.call(this, listener);
-		this.eachBase(function(base){
-			base.keys && base.keys(listener);
-		},0,0, true);
-	};*/
 	return Cascade; 	
-});
+});*/
+
