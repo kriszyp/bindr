@@ -95,9 +95,10 @@ define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put'
 						child.then(function(value){
 							ruleStyle[key] = set = value;
 						});
-						if(!set && child.bases){
+						var bases = child.bases;
+						if(!set && bases){
 							// we use the path name if no value was provided
-							ruleStyle[key] = child.bases[0].path;
+							ruleStyle[key] = bases[bases.length - 1].key;
 						}
 					}
 					if(key.slice && key.slice(0,2) == "on"){
@@ -135,7 +136,7 @@ define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put'
 	function dbind(element, data, sheet){
 		var root = createRoot(element);
 		if(data){
-			root.get("source").extend(new ReactiveObject(data));
+			root.source = new ReactiveObject(data);
 		}
 		parser({text: sheet}, root);
 		return root.get("element");

@@ -1,7 +1,9 @@
 define(['./Cascade'], function(Cascade){
 	// simple wrapper around JS objects
 	function ReactiveObject(value){
-		this.value = value;
+		if(value !== undefined){
+			this.is(value);
+		}
 	}
 	var nativeWatch = {}.watch;
 	var ReactiveObjectPrototype = ReactiveObject.prototype = new Cascade; 

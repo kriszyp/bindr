@@ -145,16 +145,6 @@ define([], function(){
 				callback(value);
 			}
 			return value;
-			// sets the main value in this reactive, comes from the source, propagates up
-			this.value = value;
-			var listeners = this.listeners;
-			if(listeners){
-				for(var i = 0, l = listeners.length;i < l; i++){
-					var listener = listeners[i];
-					listener.call(self, value);
-				}
-			}
-			return value;
 		},
 		//getValue: function(callback){
 			// the intent of this is that it will only be called once
@@ -168,14 +158,6 @@ define([], function(){
 				var returned;
 				this.getValue ? (returned = this.getValue(callback)) && callback(returned) : callback();
 				return true;
-				var bases = this.bases;
-				if(bases){
-					/*for(var i = bases.length - 1; i >= 0; i--){
-						if(bases[i].then(callback)){
-							return true;
-						}
-					}*/
-				}
 			}else{
 				var self = this;
 				this.whenReady(function(){
@@ -184,13 +166,13 @@ define([], function(){
 			}
 		},
 		keys: function(listener){
-			var listeners = (this.keyListeners || (this.keyListeners = []));
-			listeners.push(listener);
-			for(var i in this){
-				if(i.charAt(i.length - 1) == '-'){
-					listener(this[i]);
+			var keySet = this.keySet;
+			if(keySet){
+				for(var i = 0; i < keySet.length; i++){
+					var key = keySet[i];
+					listener(this[key]);
 				}
-			}			
+			}		
 		}
 	};
 /*
@@ -214,6 +196,9 @@ define([], function(){
 	*/
 	
 	var get = Cascade.get = function(target, key, callback){
+		if(target.get){
+			return target.get(key, callback);
+		}
 		// get the reactive child by the given key
 		if(key in target){
 			var child = target[key];
@@ -255,8 +240,13 @@ define([], function(){
 		if(base.override){
 			// allow for more sophisticated overrides than simply getValue replacemetns
 			base.override(target);
-		}else if(base.getValue){
-			target.getValue = base.getValue;
+		}else{
+			if(base.getValue){
+				target.getValue = base.getValue;
+			}
+			if(base.put){
+				target.put = base.put;
+			}
 		}
 //			if(target.extend){ // this can be used by type constraints to constrain override values
 //				target.extend(this);
