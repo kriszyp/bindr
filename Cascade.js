@@ -21,7 +21,7 @@ define([], function(){
 				if(bases){
 					for(var i = 0; i < bases.length; i++){
 						// TODO: can instanceChain be just a number?
-						extend(get(bases[i], key), child, this.instanceChain ? [this] : [this].concat(this.instanceChain));
+						extend(get(bases[i], key), child, this.instanceChain ? [this].concat(this.instanceChain) : [this]);
 					}
 				}
 			}
@@ -38,7 +38,7 @@ define([], function(){
 			// extend this cascade with the given target
 			extend(base, this);
 		},
-		nextChild: function(){
+		newChild: function(){
 			var children = get(this, "children");
 			var childrenArray = (children.value || (children.is([])));
 			var newChild;
@@ -58,23 +58,21 @@ define([], function(){
 			if(waitingOn && waitingOn.length){
 				return waitingOn.shift()(proceed);
 			}
-			var bases = this.bases;
-			if(bases){
+			// TODO: need to handle concurrent whenReady requests
+			var bases = this.resolveBases();
+			if(this.bases){
+				bases = this.bases.concat(bases);
+			}
+			if(!bases.length){
 				this.whenReady = null;
 				return callback();
 			}
-			var _refs = this._refs;
-			if(!_refs || !_refs.length){
-				this.whenReady = null;
-				return callback();
-			}
-			bases = this.resolveBases();
+			
 			var waiting = 1;
 			for(var i = 0; i < bases.length; i++){
-				waiting++;
 				var base = bases[i];
 				base.whenReady ?
-					 base.whenReady(done(base)) :
+					 waiting++ && base.whenReady(done(base)) :
 					 extend(base, this);
 			}
 			this.whenReady = null;
@@ -93,6 +91,9 @@ define([], function(){
 			}
 		},
 		resolveBases: function(){
+			if(this.fromParentBase){
+				this.fromParentBase.resolveBases();
+			}
 			var refs = this._refs;
 			if(refs){
 				var bases = [];
@@ -138,6 +139,8 @@ define([], function(){
 			return [];
 		},
 		is: function(value){
+			this.bases = [];
+			this.value = value;
 			this.getValue = function(callback){
 				callback(value);
 			}
@@ -162,7 +165,8 @@ define([], function(){
 				return true;
 			}
 			if(!this.whenReady){
-				this.getValue ? this.getValue(callback) : callback();
+				var returned;
+				this.getValue ? (returned = this.getValue(callback)) && callback(returned) : callback();
 				return true;
 				var bases = this.bases;
 				if(bases){
@@ -222,7 +226,7 @@ define([], function(){
 			if(bases){
 				for(var i = 0; i < bases.length; i++){
 					// TODO: can instanceChain be just a number?
-					extend(get(bases[i], key), child, target.instanceChain ? [target] : [target].concat(target.instanceChain));
+					extend(get(bases[i], key), child, this.instanceChain ? [this].concat(this.instanceChain) : [this]);
 				}
 			}
 		}
@@ -239,9 +243,12 @@ define([], function(){
 			return base !== undefined && target.is(base);
 		}
 		if(targets){
-			base = delegate(base);
+			var newBase = delegate(base);
+			newBase.fromParentBase = base;
+			base = newBase;
 		//target.extend(base);
 			base.instanceChain = targets;
+			base.whenReady = Cascade.prototype.whenReady;
 		}
 		//base.resolveBases();
 		(target.bases || (target.bases = [])).push(base);

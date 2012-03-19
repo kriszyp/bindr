@@ -4,7 +4,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 		var setName, namePaths, sheetText = sheet.text;
 		sheetText = sheetText.replace(/\/\*.*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([-\._\w][-_\w]*))\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
+		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([-\._\w][-_\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
 			if(directive){
 				var directiveHandler = directives[directive];
 				if(!directiveHandler){
@@ -19,7 +19,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				//var reactive = new Reactive();
 				//reactive.
 				if(context.inArray && !inExtensions){
-					target = context.object.nextChild();
+					target = context.object.newChild();
 				}
 				target.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
 			}
@@ -28,7 +28,7 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				if(!inExtensions){
 					if(context.inArray && operator != ':'){
 						// TODO: use context.object.createChild();
-						target = context.object.nextChild();
+						target = context.object.newChild();
 					}else{
 						target = context.object;
 						for(var i = 0; i < namePaths.length; i++){
