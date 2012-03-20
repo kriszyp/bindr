@@ -53,7 +53,8 @@ define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put'
 										lastChild = newChild;
 									});
 								}
-							})
+							});
+							lastChild || (lastChild = put(element, 'span.dbind-loading', 'Loading...'));
 						})(children[i]);
 					}
 				}else{
@@ -77,9 +78,12 @@ define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put'
 				}
 			});
 			function getCSSClass(cascade, callback){
-				callback && cascade.eachBase && cascade.eachBase(function(base){
-					callback(getCSSClass(base));
-				});
+				var bases = callback && cascade.bases;
+				if(bases){
+					for(var i = 0; i < bases.length; i++){
+						callback(getCSSClass(bases[i]));
+					}
+				}
 				var selector = (cascade.key && cascade.key.charAt && cascade.key.charAt(0) == '.') ? cascade.key.slice(1) : 
 					((cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_'));
 				var ruleStyle;
@@ -99,6 +103,7 @@ define(['./Cascade', './ReactiveObject', './env', './parser', 'put-selector/put'
 						if(!set && bases){
 							// we use the path name if no value was provided
 							ruleStyle[key] = bases[bases.length - 1].key;
+							console.log(selector + " { " + key + ": " + bases[bases.length - 1].key + "}");
 						}
 					}
 					if(key.slice && key.slice(0,2) == "on"){
