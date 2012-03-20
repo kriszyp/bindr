@@ -14,16 +14,16 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				inExtensions = true;
 			}
 			var inSelector;
-			if(string){
+			if(string || !isNaN(name)){
 				// a string is encountered
 				//var reactive = new Reactive();
 				//reactive.
 				if(context.inArray && !inExtensions){
 					target = context.object.newChild();
 				}
-				target.is(eval(string)); // TODO: don't really want to do an eval, could use JSON parser
+				target.is(eval(string || name)); // TODO: don't really want to do an eval, could use JSON parser
 			}
-			if(name){
+			else if(name){
 				var namePaths = name.split('/');
 				if(!inExtensions){
 					if(context.inArray && operator != ':'){
@@ -34,9 +34,9 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 						for(var i = 0; i < namePaths.length; i++){
 							target = target.get(namePaths[i]);
 						}
-						/*if(context.inArray){
-							context.object.push(target);
-						}*/
+						if(context.inArray){
+							context.object.newChild(target);
+						}
 					}
 				}
 				if(operator != ':'){
