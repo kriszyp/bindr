@@ -38,17 +38,23 @@ define([], function(){
 			// extend this cascade with the given target
 			extend(base, this);
 		},
-		newChild: function(){
+		newChild: function(newChild){
 			var children = get(this, "children");
 			var childrenArray = (children.value || (children.is([])));
 			var newChild;
-			childrenArray.push(newChild = get(children, childrenArray.length));
+			childrenArray.push(newChild || (newChild = get(children, childrenArray.length)));
 			return newChild;
 		},
 		waitFor: function(promise){
 			(this.waitingOn || (this.waitingOn = [])).push(promise);
 		},
 		whenReady: function(callback){
+			if(callback){
+				if(this.readyCallbacks){
+					return this.readyCallbacks.push(callback);
+				}
+				this.readyCallbacks = [callback]; 
+			}
 			var self = this;
 			if(this.parent && this.parent.whenReady){
 				return this.parent.whenReady(proceed);
@@ -58,17 +64,16 @@ define([], function(){
 			if(waitingOn && waitingOn.length){
 				return waitingOn.shift()(proceed);
 			}
-			// TODO: need to handle concurrent whenReady requests
 			var bases = this.resolveBases();
 			if(this.bases){
 				bases = this.bases.concat(bases);
 			}
+			var waiting = 1;
 			if(!bases.length){
 				this.whenReady = null;
-				return callback();
+				return done()();
 			}
 			
-			var waiting = 1;
 			for(var i = 0; i < bases.length; i++){
 				var base = bases[i];
 				base.whenReady ?
@@ -78,14 +83,17 @@ define([], function(){
 			this.whenReady = null;
 			done()();
 			function proceed(){
-				self.whenReady(callback);
+				self.whenReady();
 			}
 			function done(target){
 				return function(){
 					target && extend(target, self);
 					waiting--;
 					if(!waiting){
-						callback();
+						var callbacks = self.readyCallbacks;
+						for(var i = 0; i < callbacks.length; i++){
+							callbacks[i]();
+						}
 					}					
 				}
 			}
@@ -117,9 +125,10 @@ define([], function(){
 							// need to determine the depth, can get the base in the process
 							var parent = this;
 							var depth = 0;
+							var firstRef = ref[0];
 							while(parent = parent.parent){
 								base = parent;
-								if(ref[0] in parent){
+								if(firstRef in parent && parent[firstRef] != this){
 									break;
 								}
 								depth++;
