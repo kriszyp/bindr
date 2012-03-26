@@ -1,10 +1,18 @@
 define(['./Cascade'], function(Cascade){
 	// simple wrapper around JS objects
-	function ReactiveObject(value){
+	function ReactiveObject(value, key, parentValue){
 		if(value !== undefined){
 			this.is(value);
 		}
-	}
+		this.put = function(value){
+			// call set if we can
+			parentValue.set ? parentValue.set(key, value) : parentValue[key] = value;
+			// set the new value if watch doesn't already do this
+			if(parentValue.watch == nativeWatch || !parentValue.set){
+				this.is(value);
+			}
+		};
+	};
 	var nativeWatch = {}.watch;
 	var ReactiveObjectPrototype = ReactiveObject.prototype = new Cascade; 
 	ReactiveObjectPrototype.get = function(key){
@@ -23,17 +31,8 @@ define(['./Cascade'], function(Cascade){
 			// don't cause errors for invalid properties, just keep giving a null (maybe this should be undefined)
 			value = null;
 		}
-		var reactive = new ReactiveObject(value);
+		var reactive = new ReactiveObject(value, key, parentValue);
 		return reactive;
-	};
-	ReactiveObjectPrototype.put = function(value){
-		var parentValue = this.parent.value;
-		// call set if we can
-		parentValue.set ? parentValue.set(this.key, value) : parentValue[this.key] = value;
-		// set the new value if watch doesn't already do this
-		if(parentValue.watch == nativeWatch || !parentValue.set){
-			this.is(value);
-		}
 	};
 	
 	return ReactiveObject;
