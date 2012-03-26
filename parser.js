@@ -1,8 +1,9 @@
-define(['./Reactive', './Cascade'], function(Reactive, Cascade){
+define(['./Cascade'], function(Cascade){
+	var get = Cascade.get;
 	var parser = function(sheet, target){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
 		var setName, namePaths, sheetText = sheet.text;
-		sheetText = sheetText.replace(/\/\*.*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
+		sheetText = sheetText.replace(/\/\*[\w\W]*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
 		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([-\._\w][-_\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
 			if(directive){
@@ -27,12 +28,12 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				var namePaths = name.split('/');
 				if(!inExtensions){
 					if(context.inArray && operator != ':'){
-						// TODO: use context.object.createChild();
+						// it's an array
 						target = context.object.newChild();
 					}else{
 						target = context.object;
 						for(var i = 0; i < namePaths.length; i++){
-							target = target.get(namePaths[i]);
+							target = get(target, namePaths[i]);
 						}
 						if(context.inArray){
 							context.object.newChild(target);
@@ -61,7 +62,20 @@ define(['./Reactive', './Cascade'], function(Reactive, Cascade){
 				case ":": case "+":
 					inExtensions = true;
 					break;
-				case "[":	case "(":
+				case "(": 
+					target = namePaths.args = [];
+					target.newChild = function(){
+						var args = this;
+						return {
+							is: function(value){
+								args.push(value);
+							},
+							addRef: function(path){
+								args.push(path);
+							}
+						}
+					};
+				case "[":	
 				case "{":
 					inExtensions = false;
 					context = {object: target, inArray: operator != '{', offset: offset + t.length};
