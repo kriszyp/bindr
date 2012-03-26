@@ -1,4 +1,5 @@
-define(['./dbind',  './parser', 'dojo/domReady!'], function(dbind, parser){
+define(['./dbind',  './parser', './Cascade', 'dojo/domReady!'], function(dbind, parser, Cascade){
+	var get = Cascade.get;
 	function search(tag){
 		var elements = document.getElementsByTagName(tag);
 		for(var i = 0; i < elements.length; i++){
@@ -7,34 +8,28 @@ define(['./dbind',  './parser', 'dojo/domReady!'], function(dbind, parser){
 	}
 	var root = dbind.createRoot(document.body);
 	function scanSheetElement(element){
-		var sheet = element.sheet || element.styleSheet, 
-			cssRules = sheet.rules || sheet.cssRules;
-		for(var i = 0; i < cssRules.length; i++){
-			var rule = cssRules[i];
-			if(rule.selectorText == "x-dbind"){
-				var url = rule.href;
-				// an extension is used, needs to be parsed
-				if(url){
-					// we use sync XHR because we assume the file is in the cache, and sync is faster when it comes from the cache
-					var text = get(url);  
-				}else{
-					text = element.innerHTML;
-				}
-				parser({
-					text: text,
-					request: request(url || "")
-				}, root);
-				return;
+		if(element.getAttribute("data-bindr")){
+			var url = element.href;
+			// an extension is used, needs to be parsed
+			if(url){
+				// we use sync XHR because we assume the file is in the cache, and sync is faster when it comes from the cache
+				var text = get(url); 
+			}else{
+				text = element.innerHTML;
 			}
+			parser({
+				text: text,
+				request: request(url || "")
+			}, root);
 		}
 	}
 	search("link");
 	search("style");
-	root.get("element").then(function(){});// trigger the start
+	get(root, "-element", function(){});// trigger the start
 	function request(baseUrl){
 		return function(url, callback){
 			url = absoluteUrl(baseUrl, url);
-			get(url, function(text){
+			retrieve(url, function(text){
 				callback({
 					text: text,
 					request: request(url)
@@ -42,7 +37,7 @@ define(['./dbind',  './parser', 'dojo/domReady!'], function(dbind, parser){
 			});
 		};
 	}
-	function get(url, callback){
+	function retrieve(url, callback){
 		var xhr = new XMLHttpRequest;
 		xhr.open("GET", url, !!callback);
 		xhr.send();

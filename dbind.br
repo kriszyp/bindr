@@ -1,0 +1,15 @@
+x-bindr {}
+element: module(bindr/element);
+scroll: element(div.bindr-scroll) {
+	overflow: auto;
+};
+button: element(button);
+table: element(table);
+label: element(label);
+text-box: element(input);
+/*
+text-box: element(input[type=text]);
+password: element(input[type=password]);
+date: element(input[type=date]);
+span: element 'span';
+div: element 'div';*/
