@@ -23,28 +23,28 @@ define(['../Cascade', '../Reactive'], function(Cascade, Reactive){
 	var top = new Cascade;
 	var get = Cascade.get;
 	var addBase = Cascade.addBase;
-	get(get(top, "base"), "foo").is(3);
-	top.get("base").get("inherited").is(6);
-	var bound = top.get("base").get("bound");
+	get(top, "base", "foo").is(3);
+	get(top,"base", "inherited").is(6);
+	var bound = get(top, "base", "bound");
 	bound.addRef(['foo']);
-	var instance = top.get("instance");
+	var instance = get(top, "instance");
 	instance.addRef(['base']);
 	addBase(instance,{foo:4});
 	
 	var thens = 0;
-	top.get("base").get("foo", function(value){
+	get(top, "base", "foo", function(value){
 		thens++;
 		console.assert(value == 3);
 	});
-	top.get("instance").get("foo").then(function(value){
+	get(top, "instance", "foo", function(value){
 		thens++;
 		console.assert(value == 4);
 	});
-	top.get("instance").get("inherited").then(function(value){
+	get(top, "instance", "inherited", function(value){
 		thens++;
 		console.assert(value == 6);
 	});
-	top.get("instance").get("bound").then(function(value){
+	get(top, "instance", "bound", function(value){
 		thens++;
 		console.assert(value == 4);
 	});
