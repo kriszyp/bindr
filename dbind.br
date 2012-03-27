@@ -7,6 +7,7 @@ button: element(button);
 table: element(table);
 label: element(label);
 text-box: element(input);
+form: element(form);
 /*
 text-box: element(input[type=text]);
 password: element(input[type=password]);

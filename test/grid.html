@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	<style>
+		@import "../../dijit/themes/claro/claro.css";
+	</style>
+	<style data-bindr="true">
+		@import "../dbind.br";
+		@import "../dijit.br";
+		source: {/*JsonRest('data');*/
+			name: "Bill",
+			age: 33,
+			save: save-button/onclick
+		}
+		
+		.rounded {
+			border-width: 1px; 
+			border-style: solid;
+			border-color: #333;
+			border-radius: 5px;
+		}
+		[
+		/*	grid {
+				store {},
+				columns: {
+					age: "Age" {
+						width: 33px;
+					},
+					name: "Name" {
+				}
+			},*/
+			form {
+				source: grid/selection;
+				[
+				person-label + "Name:" + .rounded,
+				text-box + or(source/name, "None"),
+				person-label + "Age:",
+				range + source/age {
+					font-weight: bold;
+					color: blue;
+					width: 200px;
+				},
+				save-button: button + "Save"
+			]}
+		]
+		
+	</style>
+	<script src="../../dojo/dojo.js" data-dojo-config="async: true, deps: ['bindr/scan']"></script>
+	</head>
+	<body class="claro">
+		bindr test
+	</body>
+</html>
