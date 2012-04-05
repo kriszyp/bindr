@@ -1,14 +1,13 @@
-define(['./dbind',  './parser', './Cascade', 'dojo/domReady!'], function(dbind, parser, Cascade){
-	var get = Cascade.get;
+define(['./dbind',  './parser', './Cascade', 'dojo/has'], function(dbind, parser, Cascade, has){
+	var root, get = Cascade.get;
 	function search(tag){
 		var elements = document.getElementsByTagName(tag);
 		for(var i = 0; i < elements.length; i++){
 			scanSheetElement(elements[i]);
 		}
 	}
-	var root = dbind.createRoot(document.body);
 	function scanSheetElement(element){
-		if(element.getAttribute("data-bindr")){
+		if(element.getAttribute("data-bindr") || has('config-bindrAllSheets')){
 			var url = element.href;
 			// an extension is used, needs to be parsed
 			if(url){
@@ -23,9 +22,23 @@ define(['./dbind',  './parser', './Cascade', 'dojo/domReady!'], function(dbind, 
 			}, root);
 		}
 	}
-	search("link");
-	search("style");
-	get(root, "-element", function(){});// trigger the start
+	function scan(source){
+		root = dbind.createRoot(document.body);
+		if(source){
+			parser({
+				text: source,
+				request: request("")
+			}, get(root, "source"));
+		}
+		search("link");
+		search("style");
+		get(root, "-element", function(){});// trigger the start
+	}
+	if(!has("config-manualScan")){
+		require(["dojo/domReady!"], function(){
+			scan();
+		});
+	}
 	function request(baseUrl){
 		return function(url, callback){
 			url = absoluteUrl(baseUrl, url);
@@ -63,5 +76,5 @@ define(['./dbind',  './parser', './Cascade', 'dojo/domReady!'], function(dbind, 
 		}
 		return url;
 	}
-	
+	return scan;
 });

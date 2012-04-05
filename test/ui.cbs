@@ -1,0 +1,19 @@
+@import "../dbind.br";
+person-label: @import "person-label.br" {}
+
+.rounded {
+	border-width: 1px; 
+	border-style: solid;
+	border-color: #333;
+	border-radius: 5px;
+}
+[
+	person-label + "Name:" + .rounded,
+	text-box + or(source/name, "None"),
+	person-label + "Price:",
+	text-box + source/price {
+		font-weight: bold;
+		color: blue;
+	},
+	save-button: button + "Save"
+]
