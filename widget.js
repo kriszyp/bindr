@@ -5,7 +5,7 @@ my-range: range + source/rating {
 }
  */	
 
-define(['./Cascade', 'dojo/_base/declare'], function(Cascade, declare){
+define(['./Cascade', 'dojo/_base/declare', './element'], function(Cascade, declare, element){
 	var get = Cascade.get;
 	// TODO: create widget module 
 /*	adaptWidget("list", "dgrid/List");
@@ -26,27 +26,36 @@ range: widget {
 				var clazz = [args[0].join('/')];
 				clazz = target.clazz = this.clazz ? this.clazz.concat(clazz) : clazz;
 				get(target, '-element').getValue = function(callback){
+					var self = this;
 					require(clazz, function(){
 						Widget = arguments.length == 1 ? arguments[0] : declare([].slice.call(arguments,0), {});
 						var prototype = Widget.prototype;
 						var props = {};
-						//TODO: fix "get" being in the prototype
-						/*for(var i in prototype){
-							(function(i){
-								get(target, i, function(value){
-									if(value !== undefined){
-										if(props){
-											props[i] = value;
-										}else{
-											widget.set(i, value);
+						for(var i in prototype){
+							if(typeof prototype[i] != "function"){  
+								(function(i){
+									
+									var callback = function(value){
+										if(value !== undefined){
+											if(props){
+												props[i] = value;
+											}else{
+												widget.set(i, value);
+											}
 										}
+									};
+									if(i == "value"){
+										self.parent.then(callback);
+									}else{
+										get(self.parent, i, callback);
 									}
-								});
-							})(i);
-						}*/
-						var widget = target.widget = new Widget(props);
+								})(i);
+							}
+						}
+						var widgetContainer = element.makeGetValue('div').call(self);
+						var widget = target.widget = new Widget(props, widgetContainer.appendChild(document.createElement('div')));
 						props = null;
-						callback(widget.domNode);
+						callback(widgetContainer);
 					});
 				};
 			}
