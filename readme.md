@@ -21,6 +21,10 @@ JSON is also a proper subset of Bindr. This means that it works easily with comm
 data interchange and combined with the secure nature of Bindr, JSON can be safely 
 and properly parsed with a Bindr parser. 
 
+Bindr is not designed to completely supplant imperative programming. It is intended to
+help minimize imperative code, isolating it to specific components and functions that
+can be used within application design, where much of the application exists at a declarative
+level with a clean separation from the imperative implementation details.
 # Bindr Language Syntax and Semantics
 
 A symbol is a token of letters and number (like valid variable names in JavaScript) that 
