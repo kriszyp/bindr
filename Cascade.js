@@ -97,43 +97,11 @@ define([], function(){
 			var refs = this._refs;
 			if(refs){
 				var bases = [];
-				var instanceChain = this.instanceChain;
 				for(var i = 0; i < refs.length; i++){
 					var ref = refs[i];
-					if(ref.splice){ // if it is an array
-						// first we need to make sure the depth has been computed
-						var base, depth = ref.depth;
-						if(depth > -1){
-							// second if we are in a different instance chain, we need to go up through the parent chain the proper number of places
-							if(instanceChain && depth < instanceChain.length){
-								base = instanceChain[depth];
-							}else{
-								base = this;
-								for(var i = 0; i <= depth; i++){
-									base = base.parent;
-								}
-							}
-						}else{
-							// need to determine the depth, can get the base in the process
-							var parent = this;
-							var depth = 0;
-							var firstRef = ref[0];
-							while(parent = parent.parent){
-								base = parent;
-								if(firstRef in parent && parent[firstRef] != this){
-									break;
-								}
-								depth++;
-							}
-							ref.depth = depth;
-						}
-						for(var j = 0; j < ref.length; j++){
-							base = get(base, ref[j]);
-						}
-					}else{
-						base = ref;
-					}
-					bases.push(base);
+					bases.push(ref.splice ?
+							resolve(this, ref) : // if it is an array that indicates it is reference 
+							ref);
 				}
 				return bases;
 			}
@@ -173,7 +141,7 @@ define([], function(){
 					var key = keySet[i];
 					listener(this[key]);
 				}
-			}		
+			}
 		},
 		override: function(target){
 			// recursively execute override function for the bases
@@ -217,6 +185,10 @@ define([], function(){
 	*/
 	
 	var get = Cascade.get = function(target, key, callback){
+		if(key.call){
+			// get(target,callback) form
+			return target.then ? target.then(key) : key ? key(target) : target;
+		}
 		if(target.get){
 			var child = target.get(key);
 		}else if(key in target){
@@ -248,6 +220,39 @@ define([], function(){
 	Cascade.addBase = function(base, target){
 		(base._refs || (base._refs = [])).push(target);
 	};
+	var resolve = Cascade.resolve = function(target, ref){
+		// first we need to make sure the depth has been computed
+		var base, depth = ref.depth;
+		if(depth > -1){
+			var instanceChain = target.instanceChain;
+			// second if we are in a different instance chain, we need to go up through the parent chain the proper number of places
+			if(instanceChain && depth < instanceChain.length){
+				base = instanceChain[depth];
+			}else{
+				base = target;
+				for(var i = 0; i <= depth; i++){
+					base = base.parent;
+				}
+			}
+		}else{
+			// need to determine the depth, can get the base in the process
+			var parent = target;
+			var depth = 0;
+			var firstRef = ref[0];
+			while(parent = parent.parent){
+				base = parent;
+				if(firstRef in parent && parent[firstRef] != target){
+					break;
+				}
+				depth++;
+			}
+			ref.depth = depth;
+		}
+		for(var j = 0; j < ref.length; j++){
+			base = get(base, ref[j]);
+		}
+		return base;
+	};
 	var extend = function(base, target, targets, args){
 		if(typeof base != "object"){
 			return base !== undefined && target.is(base);
@@ -277,6 +282,7 @@ define([], function(){
 //			if(target.extend){ // this can be used by type constraints to constrain override values
 //				target.extend(this);
 //		}
+		// TODO: Do we need to wait on promise returned from override functions before setting these keys?
 		var keySet = target.keySet;
 		if(keySet){
 			for(var i = 0; i < keySet.length; i++){
