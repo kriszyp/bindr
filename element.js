@@ -10,13 +10,17 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 		ua.indexOf("Opera") > -1 ? "-o-" : "";
 
 	var domContext = new Cascade;
-	return {
+	var exports = {};
+	return exports = {
 		override: function(target, args){
 			if(!args){
 				return;
 			}
 			var selector = args[0] + '';
-			get(target, "-element").getValue = function(callback){
+			get(target, "-element").getValue = exports.makeGetValue(selector);
+		},
+		makeGetValue: function(selector){
+			return function(callback){
 				var element = this.element;
 				var parent = this.parent;
 				if(!element){
