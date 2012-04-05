@@ -3,9 +3,9 @@ define(['./Cascade'], function(Cascade){
 	var parser = function(sheet, target){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
 		var setName, namePaths, sheetText = sheet.text;
-		sheetText = sheetText.replace(/\/\*[\w\W]*?\*\//g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
+		sheetText = sheetText.replace(/\/\*[\w\W]*?\*\/|<[^\n]*/g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+")|([-\._\w][-_\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
+		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+"|'(?:\\.|[^'])+')|([-\._\w][-\._\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
 			if(directive){
 				var directiveHandler = directives[directive];
 				if(!directiveHandler){
