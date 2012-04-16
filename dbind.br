@@ -6,11 +6,39 @@ scroll: element(div.bindr-scroll) {
 button: element(button);
 table: element(table);
 label: element(label);
-text-box: element(input);
 form: element(form);
-/*
-text-box: element(input[type=text]);
-password: element(input[type=password]);
-date: element(input[type=date]);
-span: element 'span';
-div: element 'div';*/
+text-box: element(input,text);
+password: element(input,password);
+date: element(input,date);
+span: element(span);
+div: element(div);
+full-layout: {
+	[
+		top: pane {
+			bottom: auto;
+		},
+		left: pane {
+			right: auto;
+		},
+		center: pane {
+			top: top/height;
+			bottom: bottom/height;
+			left: left/height;
+			left: right/height;
+		},
+		right: pane {
+			left: auto;
+		},
+		bottom: pane {
+			top: auto;
+		}
+	]
+	pane: {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		top: 0px;
+		bottom: 0px;
+	}
+	position: relative;
+} 

@@ -12,15 +12,13 @@ define(['./Cascade', './ReactiveObject', './env', './parser', './element'], func
 	}
 	function createRoot(domElement){
 		var root = new Cascade;
-		element.override(root, 'div');
-		get(root, '-element').element = domElement;
+		var body = get(root, 'body');
+		element.apply(body, ['div']);
+		get(body, '-element').element = domElement;
 		root.parent = domContext;
 		root.isRoot = true;
 		return root;
 	}
 	dbind.createRoot = createRoot;
-	dbind.on = function(element, type, listener){
-		element.addEventListener(type, listener, false);
-	}
 	return dbind;
 });

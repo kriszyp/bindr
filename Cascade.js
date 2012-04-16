@@ -16,80 +16,6 @@ define([], function(){
 			// extend this cascade with the given target
 			extend(base, this);
 		},
-		newChild: function(newChild){
-			var children = get(this, "children");
-			var childrenArray = (children.value || (children.is([])));
-			var newChild;
-			childrenArray.push(newChild || (newChild = get(children, childrenArray.length)));
-			return newChild;
-		},
-		waitFor: function(promise){
-			(this.waitingOn || (this.waitingOn = [])).push(promise);
-		},
-		whenReady: function(callback){
-			if(callback){
-				if(this.readyCallbacks){
-					return this.readyCallbacks.push(callback);
-				}
-				this.readyCallbacks = [callback]; 
-			}
-			var self = this;
-			if(this.parent && this.parent.whenReady){
-				return this.parent.whenReady(proceed);
-			}
-			// check any waiting promises
-			var waitingOn = this.waitingOn;
-			if(waitingOn && waitingOn.length){
-				return waitingOn.shift()(proceed);
-			}
-			var bases = this.resolveBases();
-			var refs = this._refs;
-			if(this.bases){
-				bases = this.bases.concat(bases);
-				refs = Array(this.bases.length).concat(refs); // keep the ordering of the refs in sync with the bases
-			}
-			var waiting = 1;
-			if(!bases.length){
-				this.whenReady = null;
-				return done()();
-			}
-			
-			for(var i = 0; i < bases.length; i++){
-				var base = bases[i];
-				var args = (refs[i] || 0).args;
-				if(base.whenReady){
-					// TODO: eliminate whenReady and use promises from override instead
-					waiting++; 
-					base.whenReady(done(base, args));
-				}else{
-					 var result = extend(base, this, null, args);
-					 if(result && result.then){
-					 	waiting++;
-					 	result.then(done());
-					 }
-				}
-			}
-			this.whenReady = null;
-			done()();
-			function proceed(){
-				self.whenReady();
-			}
-			function done(target, args){
-				return function(){
-					var result = target && extend(target, self, null, args);
-					if(result && result.then){
-						return result.then(done());
-					}
-					waiting--;
-					if(!waiting){
-						var callbacks = self.readyCallbacks;
-						for(var i = 0; i < callbacks.length; i++){
-							callbacks[i]();
-						}
-					}					
-				}
-			}
-		},
 		resolveBases: function(){
 			if(this.fromParentBase){
 				this.fromParentBase.resolveBases();
@@ -118,32 +44,7 @@ define([], function(){
 		//getValue: function(callback){
 			// the intent of this is that it will only be called once
 		//},
-		then: function(callback){
-			if("value" in this){
-				callback(this.value);
-				return true;
-			}
-			if(!this.whenReady){
-				var returned;
-				this.getValue ? (returned = this.getValue(callback)) && callback(returned) : callback();
-				return true;
-			}else{
-				var self = this;
-				this.whenReady(function(){
-					return self.then(callback);
-				});
-			}
-		},
-		keys: function(listener){
-			var keySet = this.keySet;
-			if(keySet){
-				for(var i = 0; i < keySet.length; i++){
-					var key = keySet[i];
-					listener(this[key]);
-				}
-			}
-		},
-		override: function(target){
+		/*override: function(target){
 			// recursively execute override function for the bases
 			var bases = this.bases;
 			if(bases){
@@ -162,7 +63,7 @@ define([], function(){
 				target.put = this.put;
 			}
 			
-		}
+		}*/
 	};
 /*
 	this.get("or").getValue = function(callback){
@@ -183,11 +84,113 @@ define([], function(){
 		}
 	};
 	*/
-	
+	function whenReady(object, callback){
+		if(object._isReady && callback){
+			return callback();
+		}
+		if(callback){
+			if(object.readyCallbacks){
+				return object.readyCallbacks.push(callback);
+			}
+			object.readyCallbacks = [callback]; 
+		}
+		if(object.parent && !object.parent._isReady){
+			return whenReady(object.parent, proceed);
+		}
+		// check any waiting promises
+/*			var i -
+			function
+			for(var i = 0; i < object.bases.length; i++){
+				var base = bases[i];*/
+		if(object.whenReady){
+			var objectWhenReady = object.whenReady;
+			object.whenReady = null;
+			objectWhenReady.call(object, proceed);
+		}
+		var bases = object.resolveBases ? object.resolveBases() : [];
+		var refs = object._refs;
+		if(object.bases){
+			bases = object.bases.concat(bases);
+			refs = Array(object.bases.length).concat(refs); // keep the ordering of the refs in sync with the bases
+			object.bases = []; // reset it so that they will be readded
+		}
+		var waiting = 1;
+		
+		if(!bases.length || object._isReady){
+			object._isReady = true;
+			return done()();
+		}
+		var timeout = setTimeout(function(){
+			console.log("Timeout waiting for:");
+			for(var i = 0; i < bases.length; i++){
+				var base = bases[i];
+				if(!base._isReady){
+					console.log(base);
+				}
+			}
+		}, 5000);
+		for(var i = 0; i < bases.length; i++){
+			var base = bases[i];
+			var args = (refs[i] || 0).args;
+			var alreadyExtended = bases.length
+			if(!base._isReady){
+				// TODO: eliminate whenReady and use promises from override instead
+				waiting++;
+				whenReady(base, done(base, args));
+			}else{
+				 var result = extend(base, object, null, args);
+				 if(result && result.then){
+				 	waiting++;
+				 	result.then(done());
+				 }
+			}
+		}
+		object._isReady = true;
+		done()();
+		function proceed(){
+			whenReady(object);
+		}
+		function done(target, args){
+			return function(){
+				var result = target && extend(target, object, null, args);
+				if(result && result.then){
+					return result.then(done());
+				}
+				waiting--;
+				if(!waiting){
+					clearTimeout(timeout);
+					object._isReady = true;
+					var callbacks = object.readyCallbacks;
+					for(var i = 0; i < callbacks.length; i++){
+						callbacks[i]();
+					}
+				}					
+			}
+		}
+	}
+	function when(target, callback){
+		if(target && typeof target == "object"){
+			if("value" in target){
+				callback(target.value);
+				return true;
+			}
+			if(target._isReady){
+				var returned;
+				target.getValue ? (returned = target.getValue(callback)) && callback(returned) : callback();
+				return true;
+			}else{
+				whenReady(target, function(){
+					return when(target, callback);
+				});
+			}
+		}else{
+			callback(target);
+		}
+	}
 	var get = Cascade.get = function(target, key, callback){
 		if(key.call){
 			// get(target,callback) form
-			return target.then ? target.then(key) : key ? key(target) : target;
+			return key ? when(target, key) : target;
 		}
 		if(target.get){
 			var child = target.get(key);
@@ -205,7 +208,7 @@ define([], function(){
 			if(bases){
 				for(var i = 0; i < bases.length; i++){
 					// TODO: can instanceChain be just a number?
-					extend(get(bases[i], key), child, this.instanceChain ? [this].concat(this.instanceChain) : [this]);
+					extend(get(bases[i], key), child, target.instanceChain ? [target].concat(target.instanceChain) : [target]);
 				}
 			}
 		}
@@ -213,7 +216,7 @@ define([], function(){
 			if(typeof callback == "string"){
 				return get.apply(null, [child].concat([].slice.call(arguments, 2)));
 			}
-			child.then ? child.then(callback) : callback(child);
+			when(child, callback);
 		}
 		return child;
 	};
@@ -251,6 +254,20 @@ define([], function(){
 		for(var j = 0; j < ref.length; j++){
 			base = get(base, ref[j]);
 		}
+		if(ref.args){
+			var appliedBase = {
+				parent: target.parent,
+				whenReady: function(callback){
+					whenReady(base, function(){
+						var result = base.apply(appliedBase, ref.args);
+						result && result.then ?
+							result.then(callback) :
+							callback();
+					});
+				}
+			};
+			return appliedBase;
+		}
 		return base;
 	};
 	var extend = function(base, target, targets, args){
@@ -263,7 +280,8 @@ define([], function(){
 			base = newBase;
 		//target.extend(base);
 			base.instanceChain = targets;
-			base.whenReady = Cascade.prototype.whenReady;
+			base._isReady = false;
+			base.readyCallbacks = null;
 		}
 		//base.resolveBases();
 		(target.bases || (target.bases = [])).push(base);
@@ -277,6 +295,9 @@ define([], function(){
 			}
 			if(base.put){
 				target.put = base.put;
+			}
+			if(base.apply){
+				target.apply = base.apply;
 			}
 		}
 //			if(target.extend){ // this can be used by type constraints to constrain override values
@@ -292,6 +313,23 @@ define([], function(){
 		}
 		return result;
 	};
+	Cascade.newChild = function(parent, newChild){
+		var children = get(parent, "children");
+		var childrenArray = (children.value || (children.is([])));
+		var newChild;
+		childrenArray.push(newChild || (newChild = get(children, childrenArray.length)));
+		return newChild;
+	};
+	Cascade.keys = function(target, listener){
+		var keySet = target.keySet;
+		if(keySet){
+			for(var i = 0; i < keySet.length; i++){
+				var key = keySet[i];
+				listener(target[key]);
+			}
+		}
+	};
+	
 	function startValue(target){
 		this.value = {};
 		var oldGetValue = this.getValue;

@@ -32,7 +32,7 @@ define(['./dbind',  './parser', './Cascade', 'dojo/has'], function(dbind, parser
 		}
 		search("link");
 		search("style");
-		get(root, "-element", function(){});// trigger the start
+		get(root, "body", "-element", function(){});// trigger the start
 	}
 	if(!has("config-manualScan")){
 		require(["dojo/domReady!"], function(){

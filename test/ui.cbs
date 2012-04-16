@@ -6,14 +6,28 @@ person-label: @import "person-label.br" {}
 	border-style: solid;
 	border-color: #333;
 	border-radius: 5px;
-}
-[
-	person-label + "Name:" + .rounded,
-	text-box + or(source/name, "None"),
-	person-label + "Price:",
-	text-box + source/price {
-		font-weight: bold;
-		color: blue;
-	},
-	save-button: button + "Save"
+};
+editable-source: transaction(source);
+
+body [
+	div [
+		label + "Name:" + .rounded,
+		text-box + or(editable-source/name, "None"),
+		label + "Price:",
+		text-box + editable-source/price {
+			font-weight: bold;
+			color: blue;
+		},
+		button + "Save" {
+			onclick: editable-source/save;
+		}
+	],
+	div [
+		expand: button + "Save";
+		span + "Expando" {
+			background-color: red;
+			height: 20px;
+			width: 100px;
+		}
+	]
 ]

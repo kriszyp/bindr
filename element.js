@@ -1,5 +1,6 @@
 define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 	var get = Cascade.get;
+	var keys = Cascade.keys;
 	var extraSheet = put(document.getElementsByTagName("head")[0], "style");
 	es = extraSheet = extraSheet.sheet || extraSheet.styleSheet;
 	var divStyle = put("div").style;
@@ -10,21 +11,26 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 		ua.indexOf("Opera") > -1 ? "-o-" : "";
 
 	var domContext = new Cascade;
-	var exports = {};
-	return exports = {
-		override: function(target, args){
-			if(!args){
-				return;
-			}
+	var exports = {
+		apply: function(target, args){
 			var selector = args[0] + '';
-			get(target, "-element").getValue = exports.makeGetValue(selector);
+			target["-element"] = {
+				getValue: exports.makeGetValue(selector)
+			};
+			target.get = function(key){
+				console.log("element get " + key);
+				return this[key] || (this[key] = new Cascade);
+			}
 		},
-		makeGetValue: function(selector){
+		makeGetValue: function(selector, inputType){
 			return function(callback){
 				var element = this.element;
 				var parent = this.parent;
 				if(!element){
 					element = this.element = put(selector);
+					if(inputType){
+						element.type = inputType;
+					}
 					var className = getCSSClass(parent, function(className){
 						element.className += ' ' + className;
 					});
@@ -35,7 +41,7 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 						for(var i = 0; i < children.length; i++){
 							(function(child){
 								var lastChild;
-								get(child, "-element").then(function(childElement){
+								get(child, "-element", function(childElement){
 									if(childElement){
 										lastChild ? 
 											element.replaceChild(childElement, lastChild) :
@@ -43,7 +49,7 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 										lastChild = childElement;
 									}else{
 										// if there is no element wrapper, we just get the main value and insert it as a plain text node
-										child.then(function(value){
+										get(child, function(value){
 											var newChild = document.createTextNode(value);
 											lastChild ? 
 												element.replaceChild(newChild, lastChild) :
@@ -56,7 +62,7 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 							})(children[i]);
 						}
 					}else{
-						parent.then(function(value){
+						get(parent, function(value){
 							if(element.tagName == "INPUT"){
 								element.value = value;
 								if(parent.put){
@@ -89,8 +95,16 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 					var selector = (cascade.key && cascade.key.charAt && cascade.key.charAt(0) == '.') ? cascade.key.slice(1) : 
 						((cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_'));
 					var ruleStyle;
-					cascade.keys(function(child){
+					keys(cascade, function(child){
 						var key = child.key;
+						if(key.slice && key.slice(0,2) == "on"){
+							// event handlers are handled as time varying values with a value that matches the last event
+							exports.on(element, key.slice(2), function(event){
+								get(child, function(value){
+									value(event);
+								});
+							});
+						}
 						if(isNaN(key) && (key in divStyle || (key = vendorPrefix + key) in divStyle)){
 							if(!ruleStyle){
 								var rules = extraSheet.cssRules || extraSheet.rules;
@@ -98,7 +112,7 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 										(extraSheet.addRule('.' + selector, ""), rules.length -1) : extraSheet.insertRule('.' + selector + "{}", rules.length)].style;
 							}
 							var set;
-							child.then(function(value){
+							get(child, function(value){
 								ruleStyle[key] = set = value;
 							});
 							var bases = child.bases;
@@ -107,12 +121,6 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 								ruleStyle[key] = bases[bases.length - 1].key;
 								console.log(selector + " { " + key + ": " + bases[bases.length - 1].key + "}");
 							}
-						}
-						if(key.slice && key.slice(0,2) == "on"){
-							// event handlers are handled as time varying values with a value that matches the last event
-							dbind.on(element, key.slice(2), function(event){
-								child.is(event);
-							});
 						}
 					});
 					return selector;
@@ -134,4 +142,8 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 			};
 		}
 	};
+	exports.on = function(element, type, listener){
+		element.addEventListener(type, listener, false);
+	}
+	return exports;
 });

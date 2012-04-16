@@ -1,2 +1,2 @@
-@extends label;
+this: label;
 color: green;

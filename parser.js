@@ -1,5 +1,6 @@
 define(['./Cascade'], function(Cascade){
 	var get = Cascade.get;
+	var newChild = Cascade.newChild;
 	var parser = function(sheet, target){
 		var inExtensions, inArray, context = {object: target, inArray: false}, stack = [context];
 		var setName, namePaths, sheetText = sheet.text;
@@ -20,36 +21,36 @@ define(['./Cascade'], function(Cascade){
 				//var reactive = new Reactive();
 				//reactive.
 				if(context.inArray && !inExtensions){
-					target = context.object.newChild();
+					target = context.object.newChild ? context.object.newChild() : newChild(context.object);
 				}
 				target.is(eval(string || name)); // TODO: don't really want to do an eval, could use JSON parser
 			}
 			else if(name){
 				var namePaths = name.split('/');
-				if(!inExtensions){
-					if(context.inArray && operator != ':'){
-						// it's an array
-						target = context.object.newChild();
-					}else{
-						target = context.object;
-						for(var i = 0; i < namePaths.length; i++){
-							target = get(target, namePaths[i]);
-						}
-						if(context.inArray){
-							context.object.newChild(target);
-						}
-					}
+				if(namePaths[0] == "this"){
+					namePaths.shift();
+					namePaths.depth = 0;
 				}
-				if(operator != ':'){
-					// name { ...} is sugar for name: name { ...}
- 					/*var resolution = (inExtensions || context.inArray ? target : target.parent).resolve(namePaths[0]);
-					for(var i = 1; i < namePaths.length; i++){
-						var dashIndex, namePath = namePaths[i].toLowerCase();
-						while((dashIndex = namePath.indexOf('-')) > -1){
-							namePath = namePath.substring(0, dashIndex) + namePath.charAt(dashIndex + 1).toUpperCase() + namePath.substring(dashIndex + 2);  
-						}
-						namePaths[i] = namePath;
-					}*/
+				if(operator == ":"){
+					target = context.object;
+					for(var i = 0; i < namePaths.length; i++){
+						target = get(target, namePaths[i]);
+					}
+					if(context.inArray){
+						newChild(context.object, target);
+					}
+				}else{
+					if(!inExtensions){
+						if(context.inArray){
+							// it's an array
+							target = context.object.newChild ? context.object.newChild() : newChild(context.object);
+						}else{
+							target = context.object;
+							for(var i = 0; i < namePaths.length; i++){
+								target = get(target, namePaths[i]);
+							}
+						}						
+					}
 					target.addRef(namePaths);
 				}
 			}
@@ -88,9 +89,10 @@ define(['./Cascade'], function(Cascade){
 				case "}": case "]": case ")":
 					inExtensions = false;
 					target.asText = sheetText.substring(context.offset, offset);
+					// for ) we keep the target, for } and ] we don't
+					target = stack[stack.length - 1].object;
 					stack.pop();
 					context = stack[stack.length - 1];
-					target = context.object;
 					break;
 			};
 		});
@@ -103,22 +105,26 @@ define(['./Cascade'], function(Cascade){
 	directives["import"] = function(object, sheet){
 		var target = new Cascade;
 		// tell the object to wait for this import
-		object.waitFor(function(callback){
+		var oldWhenReady = object.whenReady;
+		object.whenReady = function(callback){
+			object.whenReady = oldWhenReady;
 			// get the URL from the target
-			target.then(function(value){
+			get(target,function(value){
 				// request the next sheet
 				sheet.request(value, function(nextSheet){
 					// parse it
 					parser(nextSheet, object);
-					callback();
+					object.whenReady ?
+						object.whenReady(callback) : 
+						callback();
 				});
 			});
-		});
+		};
 		return target; 
 	};	
-	directives["extends"] = function(object, sheet){
+	/*directives["extends"] = function(object, sheet){
 		// directly use this object for extensions
 		return object;
-	};	
+	};*/	
 	return parser;
 });
