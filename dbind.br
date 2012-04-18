@@ -6,7 +6,7 @@ scroll: element(div.bindr-scroll) {
 button: element(button);
 table: element(table);
 label: element(label);
-form: element(form);
+form: element(div.form);
 text-box: element(input,text);
 password: element(input,password);
 date: element(input,date);

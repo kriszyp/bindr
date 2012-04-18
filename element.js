@@ -1,6 +1,7 @@
 define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 	var get = Cascade.get;
 	var keys = Cascade.keys;
+	var allKeys = Cascade.allKeys;
 	var extraSheet = put(document.getElementsByTagName("head")[0], "style");
 	es = extraSheet = extraSheet.sheet || extraSheet.styleSheet;
 	var divStyle = put("div").style;
@@ -85,6 +86,16 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 						});
 					}
 				});
+				allKeys(parent, function(key){
+					if(key.slice && key.slice(0,2) == "on"){
+						// event handlers are handled as time varying values with a value that matches the last event
+						exports.on(element, key.slice(2), function(event){
+							get(parent, key, function(value){
+								value(event);
+							});
+						});
+					}
+				});
 				function getCSSClass(cascade, callback){
 					var bases = callback && cascade.bases;
 					if(bases){
@@ -95,16 +106,8 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 					var selector = (cascade.key && cascade.key.charAt && cascade.key.charAt(0) == '.') ? cascade.key.slice(1) : 
 						((cascade.isRoot || !cascade.parent) ? "dbind" : getCSSClass(cascade.parent) + "-" + ('' + (cascade.key)).replace(/\./g, '_'));
 					var ruleStyle;
-					keys(cascade, function(child){
-						var key = child.key;
-						if(key.slice && key.slice(0,2) == "on"){
-							// event handlers are handled as time varying values with a value that matches the last event
-							exports.on(element, key.slice(2), function(event){
-								get(child, function(value){
-									value(event);
-								});
-							});
-						}
+					keys(cascade, function(key){
+						var child = cascade[key];
 						if(isNaN(key) && (key in divStyle || (key = vendorPrefix + key) in divStyle)){
 							if(!ruleStyle){
 								var rules = extraSheet.cssRules || extraSheet.rules;
@@ -143,7 +146,8 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 		}
 	};
 	exports.on = function(element, type, listener){
-		element.addEventListener(type, listener, false);
+		// very simple event listener functionality
+		element['on' + type] = listener;
 	}
 	return exports;
 });

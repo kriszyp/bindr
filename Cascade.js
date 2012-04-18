@@ -321,15 +321,31 @@ define([], function(){
 		return newChild;
 	};
 	Cascade.keys = function(target, listener){
+		keys(target, listener);
+	};
+	var allowAll = {};
+	Cascade.allKeys = function(target, listener){
+		keys(target, listener, allowAll);
+	};
+	function keys(target, listener, instance){
 		var keySet = target.keySet;
 		if(keySet){
 			for(var i = 0; i < keySet.length; i++){
 				var key = keySet[i];
-				listener(target[key]);
+				if(!(instance && key in instance)){
+					listener(key);
+				}
 			}
 		}
-	};
-	
+		if(instance){
+			var bases = this.bases;
+			if(bases){
+				for(var i= 0; i < bases.length; i++){
+					keys(bases[i], listener, target);
+				}
+			}
+		}
+	}
 	function startValue(target){
 		this.value = {};
 		var oldGetValue = this.getValue;

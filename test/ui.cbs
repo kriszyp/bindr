@@ -10,7 +10,7 @@ person-label: @import "person-label.br" {}
 editable-source: transaction(source);
 
 body [
-	div [
+	form [
 		label + "Name:" + .rounded,
 		text-box + or(editable-source/name, "None"),
 		label + "Price:",
@@ -23,7 +23,7 @@ body [
 		}
 	],
 	div [
-		expand: button + "Save";
+		expand: button + "Expand";
 		span + "Expando" {
 			background-color: red;
 			height: 20px;
