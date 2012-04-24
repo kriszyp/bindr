@@ -1,6 +1,7 @@
 define(['./Reactive', './Cascade', 'compose/compose'], function(Reactive, Cascade, Compose){
 	return function(env){
 		var get = Cascade.get;
+		var is = Cascade.is;
 		var resolve = Cascade.resolve;
 		var moduleBase = get(env, 'module');
 		moduleBase.apply = function(target, args){
@@ -61,22 +62,26 @@ define(['./Reactive', './Cascade', 'compose/compose'], function(Reactive, Cascad
 			var dirty = [];
 			function addTrans(target, original){
 				var newValue;
-				get(target, "save").is(function(){
+				is(target, "save", function(){
 					for(var i = 0; i < dirty.length; i++){
 						// TODO: should be put
 						dirty[i].original.put(dirty[i].value);
 					}
 				});
+				target.is = Reactive.prototype.is;
 				if(original.getValue){
 					target.getValue = function(callback){
-						original.getValue(callback);
+						original.getValue(function(value){
+							target.is(value)
+						});
+						Reactive.prototype.getValue.call(target, callback);
 					};
 				}
 				target.get = function(key){
 					return this[key] || (this[key] = addTrans(new Cascade, get(original, key)));
 				};
 				target.put = function(value){
-					this.is(value);
+					target.is(value);
 					dirty.push({
 						original: original,
 						value: value
@@ -84,7 +89,7 @@ define(['./Reactive', './Cascade', 'compose/compose'], function(Reactive, Cascad
 				};
 				return target;
 			}
-			return addTrans(target, resolve(target, args[0]));
+			addTrans(target, resolve(target, args[0]));
 		};
 	};
 });
