@@ -12,6 +12,8 @@ password: element(input,password);
 date: element(input,date);
 span: element(span);
 div: element(div);
+li: element(li);
+ul: element(ul);
 full-layout: {
 	[
 		top: pane {

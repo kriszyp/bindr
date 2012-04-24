@@ -6,7 +6,7 @@ define(['../dbind', 'put-selector/put', 'dojo/Stateful', '../Cascade'], function
 			age: 33
 		});
 	var target = get(dbind(put(document.body, 'div'), obj,
-		'[span + source/name { color: green; };' + 
+		'element: module(bindr/element); span: element(span); div: element(div); body: [span + source/name { color: green; };' + 
 		'div + source/age { font-weight: bold}]'), function(target){
 		console.assert(target.firstChild.tagName == 'SPAN');
 		console.assert(target.firstChild.innerHTML == 'Mike');
@@ -16,7 +16,8 @@ define(['../dbind', 'put-selector/put', 'dojo/Stateful', '../Cascade'], function
 		console.assert(getComputedStyle(target.firstChild.nextSibling).fontWeight == 'bold');
 	});
 	var target = get(dbind(put(document.body, 'div'), obj,
-		'[div { ' +
+		'element: module(bindr/element); div: element(div); label: element(label); text-box: element(input,text); ' +
+		'body: [div { ' +
 			'person-label: label { color: green};' +
 			'[person-label + "Name:",' +
 			'text-box + source/name,' +

@@ -8,7 +8,7 @@ define(['./Cascade', './ReactiveObject', './env', './parser', './element'], func
 			root.source = new ReactiveObject(data);
 		}
 		parser({text: sheet}, root);
-		return get(root, "-element");
+		return get(root, "body", "-element");
 	}
 	function createRoot(domElement){
 		var root = new Cascade;
