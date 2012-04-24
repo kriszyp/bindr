@@ -44,6 +44,7 @@ define(['./Cascade'], function(Cascade){
 						if(context.inArray){
 							// it's an array
 							target = context.object.newChild ? context.object.newChild() : newChild(context.object);
+							inExtensions = true;
 						}else{
 							target = context.object;
 							for(var i = 0; i < namePaths.length; i++){
@@ -76,7 +77,7 @@ define(['./Cascade'], function(Cascade){
 							}
 						}
 					};
-				case "[":	
+				case "[":
 				case "{":
 					inExtensions = false;
 					context = {object: target, inArray: operator != '{', offset: offset + t.length};
@@ -93,11 +94,14 @@ define(['./Cascade'], function(Cascade){
 					target = stack[stack.length - 1].object;
 					stack.pop();
 					context = stack[stack.length - 1];
+					if(operator == ")"){
+						target = context.object;
+					}
 					break;
 			};
 		});
 		if(stack.length > 1){
-			throw new Error("Unclosed braces");
+			console.error("Unclosed braces");
 		}
 		return context.object;
 	};
