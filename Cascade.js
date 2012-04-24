@@ -11,10 +11,13 @@ define([], function(){
 		addRef: function(ref){
 			(this._refs || (this._refs = [])).push(ref);
 		},
-		extend: function(base){
-			// DEPRECATED?
-			// extend this cascade with the given target
-			extend(base, this);
+		get: function(key){
+			var child = this[key];
+			if(!child){
+				(this.keySet || (this.keySet = [])).push(key);
+				child = this[key] = new Cascade;
+			}
+			return child;
 		},
 		resolveBases: function(){
 			if(this.fromParentBase){
@@ -187,6 +190,19 @@ define([], function(){
 			callback(target);
 		}
 	}
+	Cascade.is = function(target, key, value){
+		var child = get(target, key);
+		if(!child){
+			child = target[key] = {};
+		}
+		if(child.is){
+			child.is(value);
+		}else{
+			child.getValue = function(){
+				return value;
+			};
+		}
+	}
 	var get = Cascade.get = function(target, key, callback){
 		if(key.call){
 			// get(target,callback) form
@@ -197,11 +213,8 @@ define([], function(){
 		}else if(key in target){
 		// get the reactive child by the given key
 			var child = target[key];
-		}else{
-			(target.keySet || (target.keySet = [])).push(key);
-			var child = target[key] = new Cascade;
 		}
-		if(!child.key){
+		if(child && !child.key){
 			child.parent = target;
 			child.key = key;
 			var bases = target.bases;
@@ -354,7 +367,5 @@ define([], function(){
 		}
 		return oldGetValue;
 	}
-	
-	return Cascade;
-	 	
+	return Cascade;	
 });
