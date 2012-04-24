@@ -2,10 +2,12 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 	var get = Cascade.get;
 	var keys = Cascade.keys;
 	var allKeys = Cascade.allKeys;
-	var extraSheet = put(document.getElementsByTagName("head")[0], "style");
-	es = extraSheet = extraSheet.sheet || extraSheet.styleSheet;
+	var extraSheetNode = put(document.getElementsByTagName("head")[0], "style");
+	var extraSheet = extraSheetNode.sheet || extraSheetNode.styleSheet;
+es = extraSheet;
 	var divStyle = put("div").style;
 	var ua = navigator.userAgent;
+	var cssConversionTimeout;
 	var vendorPrefix = ua.indexOf("WebKit") > -1 ? "-webkit-" :
 		ua.indexOf("Firefox") > -1 ? "-moz-" :
 		ua.indexOf("MSIE") > -1 ? "-ms-" :
@@ -116,13 +118,35 @@ define(['./Cascade', 'put-selector/put'], function(Cascade, put){
 							}
 							var set;
 							get(child, function(value){
+								if(typeof value == "number"){
+									// by default we use pixels as the unit
+									value = value + "px";
+								}
 								ruleStyle[key] = set = value;
+/*if(!cssConversionTimeout){
+	cssConversionTimeout = setTimeout(function(){
+		cssConversionTimeout = false;
+		// this is to reconvert the stylesheet so that webkit inspector can read it 
+		styleSheet = document.createElement("style");
+		styleSheet.setAttribute("type", "text/css");
+		var css = '';
+		for(var i= 0;i < extraSheet.cssRules.length; i++){
+			css += extraSheet.cssRules[i].cssText + "\n";
+		}
+		console.log("updated css " + css);
+		styleSheet.appendChild(document.createTextNode(css));
+		var head = document.head;
+		head.replaceChild(styleSheet, extraSheetNode);
+		extraSheetNode = styleSheet;
+		extraSheet = styleSheet.sheet;
+	}, 500);
+}*/
 							});
 							var bases = child.bases;
 							if(!set && bases){
 								// we use the path name if no value was provided
 								ruleStyle[key] = bases[bases.length - 1].key;
-								console.log(selector + " { " + key + ": " + bases[bases.length - 1].key + "}");
+//console.log(selector + " { " + key + ": " + bases[bases.length - 1].key + "}");
 							}
 						}
 					});
