@@ -1,20 +1,40 @@
 (This project is still in early development and is only partly functional)
-Bindr is simple, secure, layerable, declarative, aspect-oriented, functionally reactive language for defining a transformation
+Bindr is simple, secure, layerable, declarative, functionally reactive language for defining a transformation
 of data. Bindr is designed to easily bind inputs to outputs such that one can create an
 representative output of time-varying inputs. This is particularly useful for developing
 user interfaces where visual elements can be bound to data inputs such data changes
 can automatically be reflected in UI updates, and user modifications flow back to data.
 
-You may want to see the dbind package for full user interface development with bindr.
-This package provides a bindr implementation with basic generic constructs. However, 
-if you are developing applications with a user interface, you probably want a full UI
-binding implementation. The dbind package provides a full library of DOM entities and widgets for
-building web/HTML based applications, based on the Dojo toolkit.
+The bindr language is useful for many situations, this package specifically includes library
+functions for building browser-based web UIs, making it easy to quickly create beautiful and 
+maintainable front ends. Here is an example of how bindr can be used to create an 
+interface. Here we utilize element generation, data bindings, CSS properties, and event
+handlers:
 
+	body [							<- generate elements as children of the body
+		h1 source/title {			<- generate an <h1>, bound to the title property of the source data
+			font-weight: normal;	<- Set the font-weight to normal for the <h1>
+		},
+		div source/description,		<- Display the description property of the source data in a <div>
+		form [						<- create a form
+			label.required 'Quantity',  <- Create a <label> with a class 'required' and text 'Quantity'
+			text-box: quantity,		<- create an input text box, bound to the 'quantity' variable
+			div 'Total Cost: ' + 
+				(quantity * source/price),  <- Output total cost, bound to quantity and price
+			button 'Order' {		<- create an button with 'Order' label
+				onclick: +form/submit;  <- when the button is clicked, submit the form
+			}
+		]
+    ]
+    quantity: 0;					<- define quantity variable
+	.required {						<- Define a class using standard CSS syntax
+    	color: red;
+    }
+	
 Bindr bears similarities to CSS, but it is generic transform, applicable to any data
-structure, and it features the composition and referencing capabilities that facilitate
-full virtually limitless possibilities of design, not just annotative styling. Bindr also has similar
-syntax, and the nested object referencing has similiarities with selector semantics. In
+structure, and it features composition and referencing capabilities that facilitate
+virtually unlimited possibilities of design, not just annotative styling. Bindr also has similar
+syntax, and the nested object referencing has similarities with selector semantics. In
 fact bindr definitions can coexist with CSS, which is useful in web based applications.
 
 JSON is also a proper subset of Bindr. This means that it works easily with common 
@@ -25,6 +45,144 @@ Bindr is not designed to completely supplant imperative programming. It is inten
 help minimize imperative code, isolating it to specific components and functions that
 can be used within application design, where much of the application exists at a declarative
 level with a clean separation from the imperative implementation details.
+
+# Getting Started
+
+We can start using Bindr by loading it on a page, and using it like CSS to style our page.
+We will start with a simple variable definition, by defining the "my-color" variable to "#ddf"
+and using it in a class definition: 
+
+	<!DOCTYPE html>
+	<html>
+		<style>
+			my-color: #ddf;
+			.colored-text {
+				color: my-color;
+			}
+		</style>
+		<script src="/path/to/bindr.js"></script>
+		<body class="colored-text">
+		</body>
+	</html>
+
+We can actually have our content defined with bindr syntax directly in page. For example,
+we could create a page to display a product. We will start with the content, providing
+a simple header that allows the browser to bootstrap the bindr script and interpret
+itself as bindr content. We will include a style element that indicates the user interface
+file to use (you will note that we use .csx as a file extension for our bindr style sheetsheets):
+
+	<!DOCTYPE html><script src="../bindr.js" data-bindr="page"></script>
+	<style>@import "ui.csx";</style> /* <-- This indicates the sheet to use to render our content */
+	/* Now begins our product object definition, defined with bindr syntax*/
+	name: 'Shoes';
+	description: 
+		'The content of this page should be both valid bindr as well as valid HTML. This means it can be directly served up in a browser, and can be indexed by search engines.';
+	price: 49.99;
+
+Now we can define ui.csx to render this product object. The content from page is 
+available in a variable named "source". For example, we could simply render the title
+as in an &lt;h1> element and the description in a &lt;div> inside the body:
+
+	body [
+		h1 source/title,
+		div source/description
+	]
+
+The advantage of using a bindr page as a starting point is that your site can be entirely
+written in bindr (you could use a JSON serializer, since JSON is valid bindr, and just add 
+the HTML preamble to bootstrap the library) and the site is still search engine accessible.
+
+# Bindr UI Basics
+
+When building UIs, Bindr can be used like CSS, with a selector and a set of properties
+defining styles for the selector:
+
+	label {
+		color: red;
+	}
+
+With Bindr we can also define new entities, not only HTML elements:
+  
+	required-label: { ... }
+	
+And we can also inherit from or mixin other definitions. For example, we could define
+our "required-label" to inherit from "label", but we will define "required-label" to be bold:
+
+	required-label: label {
+		font-weight: bold;	
+	}
+
+We could combine multiple definitions with this style of mixins:
+
+	blue-text: {
+		color: blue;
+	}
+	orange-background {
+		background-color: orange;
+	}
+	/* required-label will be defined to be bold, blue text, and an orange background */
+	required-label: label blue-text orange-background { 
+		font-weight: bold;	
+	}
+
+In bindr, not only can we define entities by style properties, but we can actually generate
+elements, allowing us to define the visual presentation of an entity using multiple elements.
+The syntax for generating children elements is enclose the children elements inside [] brackets.
+For example, we could create a form-property that would combine extend a standard &lt;div>
+and generate a &lt;label> and an &lt;input> when referenced:
+  
+	form-property: div [label, input]
+
+We can combine our definitions to compose more complex components. We can also
+combine a elements with plain text to fill the content of an element:
+
+	my-form: form [
+		label 'First Property',
+		input 'default value'
+	]
+
+The my-form would then generate HTML like:
+
+	<form>
+		<label>First Property</label>
+		<input value="default value" />
+	</form>
+
+We can also reference other sources of data by combining elements with raw data. We can
+reference nested properties by delimiting with slashes. For example:
+
+	source: {
+		name: "Bill"
+	}
+	my-form: form [
+		label 'Name',
+		input source/name
+	]
+
+And the input value will be bound to the "name" property of the "source".
+
+We can also generate elements when we combine entities that are have different essential
+tags (and therefore can't be mixins). A second element reference will be treated as a
+child element. For example, we could create a full table:
+
+	full-table: table [
+		tr td 'first row',
+		tr td 'second row'
+	]
+
+And we can further reference defined entities. Here let's define the body of our
+document with the elements above:
+
+	my-form: form [
+		required-label 'Name', /* reference required-label, which is a <label> with bold text */
+		input source/name /* bind to the source's name */
+	]
+ 
+	body [ /* define the children of the body */
+		h1 'My page with a form!', /* a header */
+		my-form
+	]
+
 # Bindr Language Syntax and Semantics
 
 A symbol is a token of letters and number (like valid variable names in JavaScript) that 
@@ -69,10 +227,10 @@ The 'sub-bar' object will now effectively have the properties foo of 3 and bar o
 Note that the inherited properties are not part of the scope, and symbol lookup will 
 only find properties defined explicitly.
 
-Multiple target references can be included, plus-sign delimited, and these will be mixed 
-in to the created object, with the last having precedence. For example:
+Multiple target references can be included, space delimited, and these will be combined 
+in the referencing object. The . For example:
 
-	new-object: base + mixin { my-property: 3 }
+	new-object: base mixin { my-property: 3 }
 
 Anytime we are defining mixins or properties of a value, it is always additive, we are 
 modifying the existing value. For example, we 
@@ -132,7 +290,7 @@ two children:
 Note that having children and having properties (and mixins) are not mutually exclusive.
 We can define both:
 
-	new-object: base + mixin { 
+	new-object: base mixin { 
 		my-property: 3 
 	}
 	[
@@ -146,21 +304,36 @@ Bindr allows you to reference or import other Bindr modules. To use the @import 
 type "@import" followed by a string indicating the name of the file to import. For example,
 we could add @import at the top level:
 
-	@import 'base.br';
+	@import 'base.csx';
 
-The 'base.br' file will be imported, behaving as if it was copied and pasted into the calling module,
+The 'base.csx' file will be imported, behaving as if it was copied and pasted into the calling module,
 making all the property definitions from 'base.br' be included in our module.
 
-We can also @import within sub value definitions. For example we could assign the definitions
-from 'base.br' to the 'base' property rather than importing all the definitions at the top level:
+## url(path)
 
-	base: @import 'base.br';
+We can use url(path) within sub value definitions. For example we could assign the definitions
+from 'base.csx' to the 'base' property rather than importing all the definitions at the top level:
+
+	base: url(base.csx);
 
 @import statements can exist with object definitions or children definitions as well.
 
-## @extends directive 
+## 'this' keyword 
 
-The @extends directive allows you to define a mixin from with an object definition. For
+The 'this' keyword allows you to reference the current object. You can use this to reference
+to an inherited property value. For example, we could have a base object:
+
+	base: {
+		four: 4;
+	}
+	
+we could reference the "four" property for this object (inherited from base):
+	
+	instance: base {
+		another-four: this/four;
+	}
+	
+We can use this to define a mixin from with an object definition. For
 example, these are equivalent:
 
 	obj1: base;
@@ -168,7 +341,7 @@ example, these are equivalent:
 and:
 	
 	obj1: {
-		@extends base;
+		this: base;
 	}
 
   
@@ -180,4 +353,11 @@ Bindr has a few
 ### parent
 
 ## Alternate Syntax
+
+
+You may want to see the dbind package for full user interface development with bindr.
+This package provides a bindr implementation with basic generic constructs. However, 
+if you are developing applications with a user interface, you probably want a full UI
+binding implementation. The dbind package provides a full library of DOM entities and widgets for
+building web/HTML based applications, based on the Dojo toolkit.
 
