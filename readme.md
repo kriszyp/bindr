@@ -18,11 +18,11 @@ handlers:
 		},
 		div source/description,				/* Display the description property of the source data in a <div>*/
 		form [								/* create a form */
-			label.required 'Quantity', 	 /* Create a <label> with a class 'required' and text 'Quantity'*/
+			label.required 'Quantity', 	 	/* Create a <label> with a class 'required' and text 'Quantity'*/
 			text-box: quantity,				/* create an input text box, bound to the 'quantity' variable*/
 			div 'Total Cost: ' + 
 				(quantity * source/price),  /* Output total cost, bound to quantity and price*/
-			button 'Order' {		/* create an button with 'Order' label*/
+			button 'Order' {				/* create an button with 'Order' label*/
 				onclick: +form/submit;  	/* when the button is clicked, submit the form*/
 			}
 		]
@@ -46,6 +46,13 @@ Bindr is not designed to completely supplant imperative programming. It is inten
 help minimize imperative code, isolating it to specific components and functions that
 can be used within application design, where much of the application exists at a declarative
 level with a clean separation from the imperative implementation details.
+
+The declarative approach is well-suited for several aspects of project development.
+Bindr can be used as inversion of control application configurator. Bindr can be used
+to provide variable and mixen driven styling/CSS. Bindr can be used to declare
+data transformation for adapting data between different systems. Because Bindr provides
+data binding and allows flexible layering and separations, it provides the ideal foundation MVC and MVMM style 
+applications.
 
 # Getting Started
 
