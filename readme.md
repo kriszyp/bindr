@@ -1,33 +1,34 @@
-(This project is still in early development and is only partly functional)
+(This project is still in early development and is only partly functional, see tests for
+examples that may be working and working to some degree)
 Bindr is simple, secure, layerable, declarative, functionally reactive language for defining a transformation
 of data. Bindr is designed to easily bind inputs to outputs such that one can create an
 representative output of time-varying inputs. This is particularly useful for developing
 user interfaces where visual elements can be bound to data inputs such data changes
 can automatically be reflected in UI updates, and user modifications flow back to data.
 
-The bindr language is useful for many situations, this package specifically includes library
+The Bindr language is useful for many situations, this package specifically includes library
 functions for building browser-based web UIs, making it easy to quickly create beautiful and 
 maintainable front ends. Here is an example of how bindr can be used to create an 
 interface. Here we utilize element generation, data bindings, CSS properties, and event
 handlers:
 
-	body [							<- generate elements as children of the body
-		h1 source/title {			<- generate an <h1>, bound to the title property of the source data
-			font-weight: normal;	<- Set the font-weight to normal for the <h1>
+	body [									/* generate elements as children of the body */
+		h1 source/title {					/* generate an <h1>, bound to the title property of the source data*/
+			font-weight: normal;			/* Set the font-weight to normal for the <h1>*/
 		},
-		div source/description,		<- Display the description property of the source data in a <div>
-		form [						<- create a form
-			label.required 'Quantity',  <- Create a <label> with a class 'required' and text 'Quantity'
-			text-box: quantity,		<- create an input text box, bound to the 'quantity' variable
+		div source/description,				/* Display the description property of the source data in a <div>*/
+		form [								/* create a form */
+			label.required 'Quantity', 	 /* Create a <label> with a class 'required' and text 'Quantity'*/
+			text-box: quantity,				/* create an input text box, bound to the 'quantity' variable*/
 			div 'Total Cost: ' + 
-				(quantity * source/price),  <- Output total cost, bound to quantity and price
-			button 'Order' {		<- create an button with 'Order' label
-				onclick: +form/submit;  <- when the button is clicked, submit the form
+				(quantity * source/price),  /* Output total cost, bound to quantity and price*/
+			button 'Order' {		/* create an button with 'Order' label*/
+				onclick: +form/submit;  	/* when the button is clicked, submit the form*/
 			}
 		]
     ]
-    quantity: 0;					<- define quantity variable
-	.required {						<- Define a class using standard CSS syntax
+    quantity: 0;							/* define quantity variable
+	.required {								/* Define a class using standard CSS syntax
     	color: red;
     }
 	
@@ -67,7 +68,7 @@ and using it in a class definition:
 
 We can actually have our content defined with bindr syntax directly in page. For example,
 we could create a page to display a product. We will start with the content, providing
-a simple header that allows the browser to bootstrap the bindr script and interpret
+a minimal HTML header that allows the browser to bootstrap the bindr script and interpret
 itself as bindr content. We will include a style element that indicates the user interface
 file to use (you will note that we use .csx as a file extension for our bindr style sheetsheets):
 
@@ -125,6 +126,7 @@ We could combine multiple definitions with this style of mixins:
 		font-weight: bold;	
 	}
 
+## Element Generation
 In bindr, not only can we define entities by style properties, but we can actually generate
 elements, allowing us to define the visual presentation of an entity using multiple elements.
 The syntax for generating children elements is enclose the children elements inside [] brackets.
@@ -161,6 +163,10 @@ reference nested properties by delimiting with slashes. For example:
 
 And the input value will be bound to the "name" property of the "source".
 
+Again, with Bindr these data bindings are "live". Changes to the value of the source's 
+name property (possibly from another widget) will automatically update the input's value
+and user modification to the input will trigger a change to the source's name property. 
+
 We can also generate elements when we combine entities that are have different essential
 tags (and therefore can't be mixins). A second element reference will be treated as a
 child element. For example, we could create a full table:
@@ -182,6 +188,49 @@ document with the elements above:
 		h1 'My page with a form!', /* a header */
 		my-form
 	]
+
+## Event Handling
+
+We can also define event handlers in the properties for an entity. This is done by providing
+a handler in a event handler property name. The event handler property names are the
+same in Bindr as in JavaScript. For example:
+
+	save-button {
+		onclick: data.save
+	}
+
+However, we typically want to set event handlers in a way that does not replaces existing
+handlers, but adds a new handler. In Bindr, using the plus operator with a function adds
+it as a function that will execute after the original. For example, we could independently define two
+handlers for the save-button such that the previous handler is not replaced:
+
+	save-button {
+		onclick: +data.save
+	}
+	...
+	save-button {
+		onclick: +save-button.disable
+	}
+
+## Widget Instantiation
+
+More complex JavaScript-based widgets can also be declared in a consistent way. Here
+we import the Dijit sheet that will instantiate Dijit widgets (when native components
+are not available), which makes a set of widget entities available. Here we use the 
+<code>range-input</code> (a HorizontalSlider from Dijit), and date-input (a DateTextBox from Dijit)
+within a form: 
+
+	@import 'bindr/dijit.csx';
+	
+	form [
+		range-input source/number {
+			minimum: 0;
+			maximum: 10;
+		},
+		date-input source/date
+	]
+
+(Note this functionality is planned to be moved to it's own package dbind).
 
 # Bindr Language Syntax and Semantics
 
@@ -347,10 +396,8 @@ and:
   
 ## Keywords
 
-Bindr has a few 
-### this
-
 ### parent
+
 
 ## Alternate Syntax
 
