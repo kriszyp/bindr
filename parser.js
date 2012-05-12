@@ -6,7 +6,7 @@ define(['./Cascade'], function(Cascade){
 		var setName, namePaths, sheetText = sheet.text;
 		sheetText = sheetText.replace(/\/\*[\w\W]*?\*\/|<[^\n]*/g,''); // remove comments, TODO: this would be better as part of the main parser for better performance and to maintain line numbers
 		// parse the bindr sheet
-		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+"|'(?:\\.|[^'])+')|([-\._\w][-\._\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
+		sheetText.replace(/\s*(?:@([\w-]+)|("(?:\\.|[^"])+"|'(?:\\.|[^'])+')|([-\._\w][-_\w\/]*))?\s*([:,;}+ \)\(\[\]{])/g, function(t, directive, string, name, operator, offset){
 			if(directive){
 				var directiveHandler = directives[directive];
 				if(!directiveHandler){
