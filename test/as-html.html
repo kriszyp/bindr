@@ -1,6 +1,10 @@
-<!DOCTYPE HTML><script src="../startup.js"></script>
-<style>@import "ui.cbs";</style>
+<!DOCTYPE html><script src="../startup.js" data-bindr="page"></script>
+<style>@import "ui.csx";</style>
 name: 'Shoes';
 description: 
 	'The content of this page should be both valid bindr as well as valid HTML. This means it can be directly served up in a browser, and can be indexed by search engines.';
 price: 49.99;
+options: [
+	div {name: 'color', choices: [blue, red, white]},
+	div {name: 'size', choices: [4, 5, 6]}
+]

@@ -43,7 +43,7 @@ define([], function(){
 				callback(value);
 			}
 			return value;
-		},
+		}
 		//getValue: function(callback){
 			// the intent of this is that it will only be called once
 		//},
@@ -217,6 +217,9 @@ define([], function(){
 		if(child && !child.key){
 			child.parent = target;
 			child.key = key;
+			if(typeof key == "number"){
+				key = "each";
+			}
 			var bases = target.bases;
 			if(bases){
 				for(var i = 0; i < bases.length; i++){
@@ -321,7 +324,15 @@ define([], function(){
 		if(keySet){
 			for(var i = 0; i < keySet.length; i++){
 				var key = keySet[i];
-				extend(get(base, key), target[key], targets ? [target].concat(targets) : [target]);
+				if(key == "children"){
+					var children = target[key];
+					var baseEach = get(base, "each");
+					for(var j = 0; j < children.length; j++){
+						extend(baseEach, children[j], targets ? [target].concat(targets) : [target]);
+					}
+				}else{
+					extend(get(base, key), target[key], targets ? [target].concat(targets) : [target]);
+				}
 			}
 		}
 		return result;
@@ -331,6 +342,7 @@ define([], function(){
 		var childrenArray = (children.value || (children.is([])));
 		var newChild;
 		childrenArray.push(newChild || (newChild = get(children, childrenArray.length)));
+		newChild.parent = parent;
 		return newChild;
 	};
 	Cascade.keys = function(target, listener){
