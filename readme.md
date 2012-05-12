@@ -133,8 +133,30 @@ We could combine multiple definitions with this style of mixins:
 		font-weight: bold;	
 	}
 
+## Bindings
+
+One of the core capabilities of Bindr is binding data sources to our definitions. This is 
+as simple as referencing the data source property in the property definition. For example,
+we could define an element 'rating' that has width that is equal to the rating propery
+of the source. 
+
+	rating {
+		width: source/rating;
+	}
+
+If the rating property changes, the binding is maintained and the width
+will be updated.
+
+We can also utilize expressions in data bindings. For example, we could update our width
+property to be equal to the rating multiplied by 10px:
+
+	rating {
+		width: source/rating * 10px;
+	}
+
 ## Element Generation
-In bindr, not only can we define entities by style properties, but we can actually generate
+
+In Bindr, not only can we define entities by style properties, but we can actually generate
 elements, allowing us to define the visual presentation of an entity using multiple elements.
 The syntax for generating children elements is enclose the children elements inside [] brackets.
 For example, we could create a form-property that would combine extend a standard &lt;div>
@@ -196,6 +218,35 @@ document with the elements above:
 		my-form
 	]
 
+## Lists
+
+In Bindr we can also bind an entity to a data source that provides a list of objects or values.
+This is done in the same way as other data bindings. When we bind a list (or array)
+to an element, children elements will be created for each item in the array. We can
+then specify properties and behavior of each of the children with the "each" property.
+For example, we could specify that a list of values could be rendered as a &lt;ul> with
+&lt;li>'s for each item like this:
+
+	my-list: ul source/some-values {
+		each: li item;		/* each item is rendered as a <li> */
+	}
+
+Of course we could do more sophisticated rendering if we had an array of objects.
+Let's say that our source was an array itself, a search results of the form:
+
+	[
+		{title:"Event Handling", link:"events.json"},
+		{title:"Widgets", link:"widgets.json"}
+	] 
+
+Now let's render this with table where each row has the title as a hyperlink:
+
+	my-table: table source {
+		each: tr td a item/title {  /* specifies a <tr> around a <td> around an <a> around the title */
+			href: item/link; 		/* specifies the href attribute of the <a> */ 
+		}
+	}
+
 ## Event Handling
 
 We can also define event handlers in the properties for an entity. This is done by providing
@@ -238,6 +289,70 @@ within a form:
 	]
 
 (Note this functionality is planned to be moved to it's own package dbind).
+
+# Modules
+
+Bindr is designed to interact with JavaScript modules for additional functionality. A 
+module can referenced and used in Bindr sheets like other values. The basic syntax
+for referencing a module is:
+
+	my-extension: module(package/module);
+
+Modules can return objects that fulfill the Bindr's JavaScript API. TODO, explain the API
+
+* get(name)
+* getValue()
+* apply(target, args)
+
+## @import directive
+
+Bindr allows you to reference or import other Bindr modules. To use the @import directive,
+type "@import" followed by a string indicating the name of the file to import. For example,
+we could add @import at the top level:
+
+	@import 'base.csx';
+
+The 'base.csx' file will be imported, behaving as if it was copied and pasted into the calling module,
+making all the property definitions from 'base.br' be included in our module.
+
+## url(path)
+
+We can use url(path) within value definitions. For example we could assign the definitions
+from 'base.csx' to the 'base' property rather than importing all the definitions at the top level:
+
+	base: url(base.csx);
+
+A url() function can exist with object definitions or children definitions as well.
+
+The url() function also be used to reference JSON data sources as well. JSON data can be 
+used interchangeably with Bindr since JSON is a valid subset of Bindr. For example,
+we could define our source data:
+
+	source: url(path/to/my-data.json);
+ 
+In addition, the value returned url() function is fully RESTful bound to the target URL.
+This means we can bind values to a form elements, and when the values are changed
+we can save them, and Bindr will automatically generate the appropriate PUT requests.
+For example, we could define a source that is bound to URL, bind the source values to
+inputs, and save them back to the URL with a button:
+
+	source: url(path/to/my-data.json);
+ 
+	body [
+		form [
+			text-input source/first-name,
+			text-input source/last-name
+		],
+		button 'Save' {
+			onclick: source/save;
+		}
+	]
+
+## navigate(source)
+
+We can use the navigate() function to different URLs, and record them in the browser
+history. 
+
 
 # Bindr Language Syntax and Semantics
 
@@ -354,26 +469,6 @@ We can define both:
 		obj2;
 	]
 
-## @import directive
-
-Bindr allows you to reference or import other Bindr modules. To use the @import directive,
-type "@import" followed by a string indicating the name of the file to import. For example,
-we could add @import at the top level:
-
-	@import 'base.csx';
-
-The 'base.csx' file will be imported, behaving as if it was copied and pasted into the calling module,
-making all the property definitions from 'base.br' be included in our module.
-
-## url(path)
-
-We can use url(path) within sub value definitions. For example we could assign the definitions
-from 'base.csx' to the 'base' property rather than importing all the definitions at the top level:
-
-	base: url(base.csx);
-
-@import statements can exist with object definitions or children definitions as well.
-
 ## 'this' keyword 
 
 The 'this' keyword allows you to reference the current object. You can use this to reference
@@ -401,17 +496,30 @@ and:
 	}
 
   
-## Keywords
+## 'parent' Keyword
 
-### parent
+The parent keyword may be used to reference a parent definition. Multiple parents
+may be combined with normal slash delimiting. For example:
 
+	granddaddy: {
+		daddy: {
+			child: {
+				my-foo: parent/parent/foo; /* would resolve to 3 */
+			}
+		}
+		foo: 3;
+	}
 
-## Alternate Syntax
+## 'item' Keyword
 
+This item keyword allows you to reference the item corresponding to each item in a 
+list when iterating through a list.
 
+## dbind
+
+(A future separate package)
 You may want to see the dbind package for full user interface development with bindr.
 This package provides a bindr implementation with basic generic constructs. However, 
 if you are developing applications with a user interface, you probably want a full UI
 binding implementation. The dbind package provides a full library of DOM entities and widgets for
 building web/HTML based applications, based on the Dojo toolkit.
-
