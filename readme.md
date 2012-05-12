@@ -23,7 +23,7 @@ handlers:
 			div 'Total Cost: ' + 
 				(quantity * source/price),  /* Output total cost, bound to quantity and price*/
 			button 'Order' {				/* create an button with 'Order' label*/
-				onclick: +form/submit;  	/* when the button is clicked, submit the form*/
+				onclick: +source/save;  	/* when the button is clicked, save the changed data*/
 			}
 		]
     ]
@@ -76,7 +76,8 @@ and using it in a class definition:
 We can actually have our content defined with bindr syntax directly in page. For example,
 we could create a page to display a product. We will start with the content, providing
 a minimal HTML header that allows the browser to bootstrap the bindr script and interpret
-itself as bindr content. We will include a style element that indicates the user interface
+itself as bindr content (make sure the page is served as text/html, which should happen for 
+you if you use an .html extension). We will include a style element that indicates the user interface
 file to use (you will note that we use .csx as a file extension for our bindr style sheetsheets):
 
 	<!DOCTYPE html><script src="../bindr.js" data-bindr="page"></script>
@@ -84,7 +85,8 @@ file to use (you will note that we use .csx as a file extension for our bindr st
 	/* Now begins our product object definition, defined with bindr syntax*/
 	name: 'Shoes';
 	description: 
-		'The content of this page should be both valid bindr as well as valid HTML. This means it can be directly served up in a browser, and can be indexed by search engines.';
+		'The content of this page should be both valid bindr as well as valid HTML. This means 
+		it can be directly served up in a browser, and can be indexed by search engines.';
 	price: 49.99;
 
 Now we can define ui.csx to render this product object. The content from page is 
